@@ -154,9 +154,10 @@ void *gNB_app_task(void *args_p)
 
   LOG_I(PHY, "%s() Task ready initialize structures\n", __FUNCTION__);
 
-  RCconfig_NR_L1();
-  RCconfig_nr_prs();
-
+  if (NFAPI_MODE != NFAPI_MODE_VNF && NFAPI_MODE != NFAPI_MODE_PNF && NFAPI_MODE != NFAPI_MODE_AERIAL) {
+    RCconfig_NR_L1();
+    RCconfig_nr_prs();
+  }
   if (RC.nb_nr_macrlc_inst>0) RCconfig_nr_macrlc();
 
   LOG_I(PHY, "%s() RC.nb_nr_L1_inst:%d\n", __FUNCTION__, RC.nb_nr_L1_inst);
