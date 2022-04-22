@@ -258,6 +258,11 @@ static int sync_to_gps(openair0_device *device) {
   return EXIT_SUCCESS;
 }
 
+#define ATR_MASK 0x7f
+#define ATR_RX   0x50 //data[4] and data[6]
+#define ATR_XX   0x20 //data[5]
+#define MAN_MASK ATR_MASK^0xFFF
+
 /*! \brief Called to start the USRP transceiver. Return 0 if OK, < 0 if error
     @param device pointer to the device structure specific to the RF hardware target
 */
@@ -268,17 +273,17 @@ static int trx_usrp_start(openair0_device *device) {
     // setup GPIO for TDD, GPIO(4) = ATR_RX
     //set data direction register (DDR) to output
     s->usrp->set_gpio_attr("FP0", "DDR", 0xfff, 0xfff);
-    //set lower 7 bits to be controlled automatically by ATR (the rest 5 bits are controlled manually)
-    s->usrp->set_gpio_attr("FP0", "CTRL", 0x7f,0xfff);
-    //set pins 4 (RX_TX_Switch) and 6 (Shutdown PA) to 1 when the radio is only receiving (ATR_RX)
-    s->usrp->set_gpio_attr("FP0", "ATR_RX", (1<<4)|(1<<6), 0x7f);
-    // set pin 5 (Shutdown LNA) to 1 when the radio is transmitting and receiveing (ATR_XX)
+    //set bits to be controlled automatically by ATR 
+    s->usrp->set_gpio_attr("FP0", "CTRL", ATR_MASK, 0xfff);
+    //set bits to 1 when the radio is only receiving (ATR_RX)
+    s->usrp->set_gpio_attr("FP0", "ATR_RX", ATR_RX, ATR_MASK);
+    // set bits to 1 when the radio is transmitting and receiveing (ATR_XX)
     // (we use full duplex here, because our RX is on all the time - this might need to change later)
-    s->usrp->set_gpio_attr("FP0", "ATR_XX", (1<<5), 0x7f);
-    // set the output pins to 1
-    s->usrp->set_gpio_attr("FP0", "OUT", 7<<7, 0xf80);
+    s->usrp->set_gpio_attr("FP0", "ATR_XX", ATR_XX, ATR_MASK);
+    // set all other pins to manual
+    s->usrp->set_gpio_attr("FP0", "OUT", MAN_MASK, 0xfff);
   }
-
+  
   s->wait_for_first_pps = 1;
   s->rx_count = 0;
   s->tx_count = 0;
@@ -373,8 +378,8 @@ static int trx_usrp_write(openair0_device *device,
   usrp_state_t *s = (usrp_state_t *)device->priv;
   int nsamps2;  // aligned to upper 32 or 16 byte boundary
 
-  int flags_lsb = flags&0xff;
-  int flags_msb = (flags>>8)&0xff;
+  int flags_burst = flags&0xf;
+  int flags_gpio = (flags>>4)&0x1fff; //MSB to enable sending GPIO command, 12 LSB carry GPIO values
 
   int end;
   openair0_thread_t *write_thread = &device->write_thread;
@@ -384,28 +389,28 @@ static int trx_usrp_write(openair0_device *device,
 
   bool first_packet_state=false,last_packet_state=false;
 
-    if (flags_lsb == 2) { // start of burst
+    if (flags_burst == 2) { // start of burst
       //      s->tx_md.start_of_burst = true;
       //      s->tx_md.end_of_burst = false;
       first_packet_state = true;
       last_packet_state  = false;
-    } else if (flags_lsb == 3) { // end of burst
+    } else if (flags_burst == 3) { // end of burst
       //s->tx_md.start_of_burst = false;
       //s->tx_md.end_of_burst = true;
       first_packet_state = false;
       last_packet_state  = true;
-    } else if (flags_lsb == 4) { // start and end
+    } else if (flags_burst == 4) { // start and end
     //  s->tx_md.start_of_burst = true;
     //  s->tx_md.end_of_burst = true;
       first_packet_state = true;
       last_packet_state  = true;
-    } else if (flags_lsb==1) { // middle of burst
+    } else if (flags_burst==1) { // middle of burst
     //  s->tx_md.start_of_burst = false;
     //  s->tx_md.end_of_burst = false;
       first_packet_state = false;
       last_packet_state  = false;
     }
-    else if (flags_lsb==10) { // fail safe mode
+    else if (flags_burst==10) { // fail safe mode
      // s->tx_md.has_time_spec = false;
      // s->tx_md.start_of_burst = false;
      // s->tx_md.end_of_burst = true;
@@ -449,12 +454,11 @@ static int trx_usrp_write(openair0_device *device,
     s->tx_count++;
 
 VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_BEAM_SWITCHING_GPIO,1);
-    // bit 3 enables gpio (for backward compatibility)
-    if (flags_msb&8) {
-      // push GPIO bits 7-9 from flags_msb
-      int gpio789=(flags_msb&7)<<7;
+    // bit 13 enables gpio 
+    if (flags_gpio&0x1000) {
+      // push GPIO bits 
       s->usrp->set_command_time(s->tx_md.time_spec);
-      s->usrp->set_gpio_attr("FP0", "OUT", gpio789, 0x380);
+      s->usrp->set_gpio_attr("FP0", "OUT", flags_gpio, MAN_MASK);
       s->usrp->clear_command_time();
     }
 VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_BEAM_SWITCHING_GPIO,0);
