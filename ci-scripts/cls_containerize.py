@@ -652,19 +652,14 @@ class Containerize():
 		mySSH.command('sed -i -e "s/image: oai-gnb:latest/image: oai-gnb:' + imageTag + '/" ci-docker-compose.yml', '\$', 2)
 		localMmeIpAddr = EPC.MmeIPAddress
 		mySSH.command('sed -i -e "s/CI_MME_IP_ADDR/' + localMmeIpAddr + '/" ci-docker-compose.yml', '\$', 2)
-#		if self.flexranCtrlDeployed:
-#			mySSH.command('sed -i -e "s/FLEXRAN_ENABLED:.*/FLEXRAN_ENABLED: \'yes\'/" ci-docker-compose.yml', '\$', 2)
-#			mySSH.command('sed -i -e "s/CI_FLEXRAN_CTL_IP_ADDR/' + self.flexranCtrlIpAddress + '/" ci-docker-compose.yml', '\$', 2)
-#		else:
-#			mySSH.command('sed -i -e "s/FLEXRAN_ENABLED:.*$/FLEXRAN_ENABLED: \'no\'/" ci-docker-compose.yml', '\$', 2)
-#			mySSH.command('sed -i -e "s/CI_FLEXRAN_CTL_IP_ADDR/127.0.0.1/" ci-docker-compose.yml', '\$', 2)
+
 		# Currently support only one
 		mySSH.command('echo ' + lPassWord + ' | sudo -S b2xx_fx3_utils --reset-device', '\$', 15)
-		mySSH.command('docker-compose --file ci-docker-compose.yml config --services | sed -e "s@^@service=@" 2>&1', '\$', 10)
-		result = re.search('service=(?P<svc_name>[a-zA-Z0-9\_]+)', mySSH.getBefore())
-		if result is not None:
-			svcName = result.group('svc_name')
-			mySSH.command('docker-compose --file ci-docker-compose.yml up -d ' + svcName, '\$', 15)
+		svcName = self.services[self.eNB_instance]
+		if svcName == '':
+			logging.warning('no service name given: starting all services in ci-docker-compose.yml!')
+
+		mySSH.command(f'docker-compose --file ci-docker-compose.yml up -d -- {svcName}', '\$', 15)
 
 		# Checking Status
 		mySSH.command('docker-compose --file ci-docker-compose.yml config', '\$', 5)
@@ -744,56 +739,52 @@ class Containerize():
 		mySSH = SSH.SSHConnection()
 		mySSH.open(lIpAddr, lUserName, lPassWord)
 		mySSH.command('cd ' + lSourcePath + '/' + self.yamlPath[self.eNB_instance], '\$', 5)
-		# Currently support only one
-		mySSH.command('docker-compose --file ci-docker-compose.yml config', '\$', 5)
-		containerName = ''
-		containerToKill = False
-		result = re.search('container_name: (?P<container_name>[a-zA-Z0-9\-\_]+)', mySSH.getBefore())
+
 		if self.eNB_logFile[self.eNB_instance] == '':
 			self.eNB_logFile[self.eNB_instance] = 'enb_' + HTML.testCase_id + '.log'
-		if result is not None:
-			containerName = result.group('container_name')
-			containerToKill = True
-		if containerToKill:
-			mySSH.command('docker inspect ' + containerName, '\$', 30)
-			result = re.search('Error: No such object: ' + containerName, mySSH.getBefore())
-			if result is not None:
-				containerToKill = False
-		if containerToKill:
-			mySSH.command('docker kill --signal INT ' + containerName, '\$', 30)
-			time.sleep(5)
-			mySSH.command('docker kill --signal KILL ' + containerName, '\$', 30)
-			time.sleep(5)
-			mySSH.command('docker logs ' + containerName + ' > ' + lSourcePath + '/cmake_targets/' + self.eNB_logFile[self.eNB_instance], '\$', 30)
-			mySSH.command('docker rm -f ' + containerName, '\$', 30)
+
+		svcName = self.services[self.eNB_instance]
+		forceDown = False
+		if svcName == '':
+			forceDown = True
+			mySSH.command(f'docker-compose -f ci-docker-compose.yml config', '\$', 5)
+			possibleServices = mySSH.getBefore().split('\n')
+			# collect services that exist and are not stopped yet
+			for s in possibleServices:
+				mySSH.command(f'docker-compose -f ci-docker-compose.yml ps "{s}"', '\$', 5)
+				if mySSH.getBefore().count('Exit') != 0 and mySSH.getBefore().count('No such service') != 0:
+					svcName += f' {s}'
+			logging.warning(f'no service name given: stopping services {svcName} in ci-docker-compose.yml!')
+
+		if svcName != '':
+			mySSH.command(f'docker-compose -f ci-docker-compose.yml stop -- {svcName}', '\$', 30)
+			# head -n -1 suppresses the final "X exited with status code Y"
+			mySSH.command(f'docker-compose -f ci-docker-compose.yml logs --no-log-prefix -- {svcName} | head -n -1 >> {lSourcePath}/cmake_targets/{self.eNB_logFile[self.eNB_instance]}', '\$', 30)
+
 		# Forcing the down now to remove the networks and any artifacts
-		mySSH.command('docker-compose --file ci-docker-compose.yml down', '\$', 5)
-		# Cleaning any created tmp volume
-		mySSH.command('docker volume prune --force || true', '\$', 20)
+		if forceDown:
+			mySSH.command('docker-compose -f ci-docker-compose.yml down', '\$', 5)
+			# Cleaning any created tmp volume
+			mySSH.command('docker volume prune --force', '\$', 20)
 
 		mySSH.close()
 
 		# Analyzing log file!
-		if containerToKill:
-			copyin_res = mySSH.copyin(lIpAddr, lUserName, lPassWord, lSourcePath + '/cmake_targets/' + self.eNB_logFile[self.eNB_instance], '.')
-		else:
-			copyin_res = 0
-		nodeB_prefix = 'e'
-		if (copyin_res == -1):
-			HTML.htmleNBFailureMsg='Could not copy ' + nodeB_prefix + 'NB logfile to analyze it!'
+		copyin_res = mySSH.copyin(lIpAddr, lUserName, lPassWord, lSourcePath + '/cmake_targets/' + self.eNB_logFile[self.eNB_instance], '.')
+		if copyin_res == -1:
+			HTML.htmleNBFailureMsg='Could not copy logfile to analyze it!'
 			HTML.CreateHtmlTestRow('N/A', 'KO', CONST.ENB_PROCESS_NOLOGFILE_TO_ANALYZE)
+			self.exitStatus = 1
 		else:
-			if containerToKill:
-				logging.debug('\u001B[1m Analyzing ' + nodeB_prefix + 'NB logfile \u001B[0m ' + self.eNB_logFile[self.eNB_instance])
-				logStatus = RAN.AnalyzeLogFile_eNB(self.eNB_logFile[self.eNB_instance], HTML, self.ran_checkers)
-			else:
-				logStatus = 0
+			logging.debug('\u001B[1m Analyzing logfile \u001B[0m ' + self.eNB_logFile[self.eNB_instance])
+			logStatus = RAN.AnalyzeLogFile_eNB(self.eNB_logFile[self.eNB_instance], HTML, self.ran_checkers)
 			if (logStatus < 0):
 				HTML.CreateHtmlTestRow(RAN.runtime_stats, 'KO', logStatus)
+				self.exitStatus = 1
 			else:
 				HTML.CreateHtmlTestRow(RAN.runtime_stats, 'OK', CONST.ALL_PROCESSES_OK)
 			# all the xNB run logs shall be on the server 0 for logCollecting
-			if containerToKill and self.eNB_serverId[self.eNB_instance] != '0':
+			if self.eNB_serverId[self.eNB_instance] != '0':
 				mySSH.copyout(self.eNBIPAddress, self.eNBUserName, self.eNBPassword, './' + self.eNB_logFile[self.eNB_instance], self.eNBSourceCodePath + '/cmake_targets/')
 		logging.info('\u001B[1m Undeploying OAI Object Pass\u001B[0m')
 
