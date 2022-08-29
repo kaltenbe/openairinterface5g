@@ -1534,8 +1534,14 @@ NR_RLC_BearerConfig_t *get_DRB_RLC_BearerConfig(long lcChannelId, long drbId, NR
   return rlc_BearerConfig;
 }
 
-void fill_mastercellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig, NR_CellGroupConfig_t *ue_context_mastercellGroup, int use_rlc_um_for_drb, uint8_t configure_srb, uint8_t bearer_id_start, uint8_t nb_bearers_to_setup, long *priority) {
-
+void fill_mastercellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
+                                NR_CellGroupConfig_t *ue_context_mastercellGroup,
+                                int                  use_rlc_um_for_drb,
+                                uint8_t              configure_srb,
+                                int                  *bearer_to_setup_ids,
+                                uint8_t              nb_bearers_to_setup,
+                                long                 *priority)
+{
   cellGroupConfig->cellGroupId = 0;
   cellGroupConfig->rlc_BearerToReleaseList = NULL;
   cellGroupConfig->rlc_BearerToAddModList = calloc(1, sizeof(*cellGroupConfig->rlc_BearerToAddModList));
@@ -1549,9 +1555,9 @@ void fill_mastercellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig, NR_CellGr
   }
 
   // DRB Configuration
-  for (int i = bearer_id_start; i < bearer_id_start + nb_bearers_to_setup; i++ ){
+  for (int i = 0; i < nb_bearers_to_setup; i++ ){
     const NR_RLC_Config_PR rlc_conf = use_rlc_um_for_drb ? NR_RLC_Config_PR_um_Bi_Directional : NR_RLC_Config_PR_am;
-    NR_RLC_BearerConfig_t *rlc_BearerConfig = get_DRB_RLC_BearerConfig(3 + i, i, rlc_conf, priority[i-bearer_id_start]);
+    NR_RLC_BearerConfig_t *rlc_BearerConfig = get_DRB_RLC_BearerConfig(3 + bearer_to_setup_ids[i], bearer_to_setup_ids[i], rlc_conf, priority[i]);
     ASN_SEQUENCE_ADD(&cellGroupConfig->rlc_BearerToAddModList->list, rlc_BearerConfig);
     ASN_SEQUENCE_ADD(&ue_context_mastercellGroup->rlc_BearerToAddModList->list, rlc_BearerConfig);
   }

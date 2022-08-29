@@ -779,11 +779,9 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
   uint16_t                       size;
   int                            qos_flow_index = 0;
   int                            pdu_sessions_done = 0;
-  int i;
-  uint8_t drb_id_to_setup_start = 1;
-  uint8_t nb_drb_to_setup = 0;
-  long drb_priority[1] = {13}; // For now, we assume only one drb per pdu sessions with a default preiority (will be dynamique in future)
-  NR_CellGroupConfig_t *cellGroupConfig = NULL;
+  int                            i;
+  uint8_t                        nb_drb_to_setup = 0;
+  NR_CellGroupConfig_t          *cellGroupConfig = NULL;
 
   uint8_t xid = rrc_gNB_get_next_transaction_identifier(ctxt_pP->module_id);
 
@@ -825,7 +823,6 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
 
     DRB_config = CALLOC(1, sizeof(*DRB_config));
     DRB_config->drb_Identity = i+1;
-    if (drb_id_to_setup_start == 1) drb_id_to_setup_start = DRB_config->drb_Identity;
     nb_drb_to_setup++;
     DRB_config->cnAssociation = CALLOC(1, sizeof(*DRB_config->cnAssociation));
     DRB_config->cnAssociation->present = NR_DRB_ToAddMod__cnAssociation_PR_sdap_Config;
@@ -943,7 +940,35 @@ rrc_gNB_generate_dedicatedRRCReconfiguration(
     cellGroupConfig = calloc(1, sizeof(NR_CellGroupConfig_t));
     // FIXME: fill_mastercellGroupConfig() won't fill the right priorities or
     // bearer IDs for the DRBs
-    fill_mastercellGroupConfig(cellGroupConfig, ue_context_pP->ue_context.masterCellGroup, rrc->um_on_default_drb, (drb_id_to_setup_start < 2) ? 1 : 0, drb_id_to_setup_start, nb_drb_to_setup, drb_priority);
+    long *drb_priority = NULL;
+    int  *drbs_to_be_setup_ids = NULL;
+    int i;
+    int config_srb;
+    if (nb_drb_to_setup > 0) {
+      drb_priority = malloc(nb_drb_to_setup * sizeof(long));
+      AssertFatal(drb_priority != NULL, "out of memory\n");
+      drbs_to_be_setup_ids = malloc(nb_drb_to_setup * sizeof(int));
+      AssertFatal(drbs_to_be_setup_ids != NULL, "out of memory\n");
+    }
+    for (i = 0; i < nb_drb_to_setup; i++) {
+      /* for now, we assume all drbs have a default priority (will be dynamique in future) */
+      drb_priority[i] = 13;
+      drbs_to_be_setup_ids[i] = i + 1;
+    }
+    /* TODO: the logic to setup the srb relies on the presence of a drb < 2? Not clear, to be fixed... */
+    config_srb = 0;
+    for (i = 0; i < nb_drb_to_setup; i++)
+      if (drbs_to_be_setup_ids[i] < 2)
+        config_srb = 1;
+    fill_mastercellGroupConfig(cellGroupConfig,
+                               ue_context_pP->ue_context.masterCellGroup,
+                               rrc->um_on_default_drb,
+                               config_srb,
+                               drbs_to_be_setup_ids,
+                               nb_drb_to_setup,
+                               drb_priority);
+    free(drb_priority);
+    free(drbs_to_be_setup_ids);
   }
   else{
     LOG_I(NR_RRC, "Master cell group originating from the DU \n");
@@ -3216,10 +3241,6 @@ static void rrc_DU_process_ue_context_setup_request(MessageDef *msg_p, const cha
     }
   }
 
-  uint8_t drb_id_to_setup_start = 0;
-  uint8_t nb_drb_to_setup = 0;
-  long drb_priority[1] = {13}; // For now, we assume only one drb per pdu sessions with a default preiority (will be dynamique in future)
-
   /* Configure SRB2 */
   NR_SRB_ToAddMod_t            *SRB2_config          = NULL;
   NR_SRB_ToAddModList_t        *SRB_configList       = NULL;
@@ -3247,7 +3268,6 @@ static void rrc_DU_process_ue_context_setup_request(MessageDef *msg_p, const cha
       ue_context_p->ue_context.DRB_configList = CALLOC(1, sizeof(*ue_context_p->ue_context.DRB_configList));
     }
     DRB_configList = ue_context_p->ue_context.DRB_configList;
-    nb_drb_to_setup = req->drbs_to_be_setup_length;
     for (int i=0; i<req->drbs_to_be_setup_length; i++){
       DRB_config = CALLOC(1, sizeof(*DRB_config));
       DRB_config->drb_Identity = req->drbs_to_be_setup[i].drb_id;
@@ -3257,7 +3277,6 @@ static void rrc_DU_process_ue_context_setup_request(MessageDef *msg_p, const cha
       memcpy(addr.buffer, &drb_p.up_ul_tnl[0].tl_address, sizeof(drb_p.up_ul_tnl[0].tl_address));
       addr.length=sizeof(drb_p.up_ul_tnl[0].tl_address)*8;
       extern instance_t DUuniqInstance;
-      if (!drb_id_to_setup_start) drb_id_to_setup_start = drb_p.drb_id;
       incoming_teid = newGtpuCreateTunnel(DUuniqInstance,
                                           req->rnti,
                                           drb_p.drb_id,
@@ -3272,10 +3291,35 @@ static void rrc_DU_process_ue_context_setup_request(MessageDef *msg_p, const cha
   }
 
   NR_CellGroupConfig_t *cellGroupConfig = calloc(1, sizeof(NR_CellGroupConfig_t));
-  if (req->srbs_to_be_setup_length > 0 || req->drbs_to_be_setup_length>0)
+  if (req->srbs_to_be_setup_length > 0 || req->drbs_to_be_setup_length > 0) {
     // FIXME: fill_mastercellGroupConfig() won't fill the right priorities or
     // bearer IDs for the DRBs
-    fill_mastercellGroupConfig(cellGroupConfig, ue_context_p->ue_context.masterCellGroup, rrc->um_on_default_drb, SRB2_config ? 1 : 0, drb_id_to_setup_start, nb_drb_to_setup, drb_priority);
+    long *drb_priority = NULL;
+    int  *drbs_to_be_setup_ids = NULL;
+    int i;
+    int config_srb;
+    if (req->drbs_to_be_setup_length > 0) {
+      drb_priority = malloc(req->drbs_to_be_setup_length * sizeof(long));
+      AssertFatal(drb_priority != NULL, "out of memory\n");
+      drbs_to_be_setup_ids = malloc(req->drbs_to_be_setup_length * sizeof(int));
+      AssertFatal(drbs_to_be_setup_ids != NULL, "out of memory\n");
+    }
+    for (i = 0; i < req->drbs_to_be_setup_length; i++) {
+      /* for now, we assume all drbs have a default priority (will be dynamique in future) */
+      drb_priority[i] = 13;
+      drbs_to_be_setup_ids[i] = req->drbs_to_be_setup[i].drb_id;
+    }
+    config_srb = SRB2_config != NULL;
+    fill_mastercellGroupConfig(cellGroupConfig,
+                               ue_context_p->ue_context.masterCellGroup,
+                               rrc->um_on_default_drb,
+                               config_srb,
+                               drbs_to_be_setup_ids,
+                               req->drbs_to_be_setup_length,
+                               drb_priority);
+    free(drb_priority);
+    free(drbs_to_be_setup_ids);
+  }
 
   apply_macrlc_config(rrc, ue_context_p, &ctxt);
   
@@ -3412,18 +3456,38 @@ static void rrc_DU_process_ue_context_modification_request(MessageDef *msg_p, co
     }
   }
 
-  if(req->srbs_to_be_setup_length>0 || req->drbs_to_be_setup_length>0){
+  if(req->srbs_to_be_setup_length > 0 || req->drbs_to_be_setup_length > 0){
     cellGroupConfig = calloc(1, sizeof(NR_CellGroupConfig_t));
-    uint8_t drb_id_to_setup_start = 1;
-    long drb_priority[1] = {13}; // For now, we assume only one drb per pdu sessions with a default preiority (will be dynamique in future)
+    long *drb_priority = NULL;
+    int  *drbs_to_be_setup_ids = NULL;
+    int i;
+    int config_srb;
+    if (req->drbs_to_be_setup_length > 0) {
+      drb_priority = malloc(req->drbs_to_be_setup_length * sizeof(long));
+      AssertFatal(drb_priority != NULL, "out of memory\n");
+      drbs_to_be_setup_ids = malloc(req->drbs_to_be_setup_length * sizeof(int));
+      AssertFatal(drbs_to_be_setup_ids != NULL, "out of memory\n");
+    }
+    for (i = 0; i < req->drbs_to_be_setup_length; i++) {
+      /* for now, we assume all drbs have a default priority (will be dynamique in future) */
+      drb_priority[i] = 13;
+      drbs_to_be_setup_ids[i] = req->drbs_to_be_setup[i].drb_id;
+    }
+    /* TODO: the logic to setup the srb relies on the presence of a drb < 2? Not clear, to be fixed... */
+    config_srb = 0;
+    for (i = 0; i < req->drbs_to_be_setup_length; i++)
+      if (drbs_to_be_setup_ids[i] < 2)
+        config_srb = 1;
     fill_mastercellGroupConfig(cellGroupConfig,
                                ue_context_p->ue_context.masterCellGroup,
                                rrc->um_on_default_drb,
-                               drb_id_to_setup_start < 2 ? 1 : 0,
-                               drb_id_to_setup_start,
+                               config_srb,
+                               drbs_to_be_setup_ids,
                                req->drbs_to_be_setup_length,
                                drb_priority);
-     apply_macrlc_config(rrc, ue_context_p, &ctxt);
+    free(drb_priority);
+    free(drbs_to_be_setup_ids);
+    apply_macrlc_config(rrc, ue_context_p, &ctxt);
   }
   if(req->ReconfigComplOutcome == RRCreconf_failure){
     LOG_W(NR_RRC, "CU reporting RRC Reconfiguration failure \n");
