@@ -326,7 +326,9 @@ void config_common(int Mod_idP, int pdsch_AntennaPorts, int pusch_AntennaPorts, 
     cfg->prach_config.num_prach_fd_occasions_list[i].num_root_sequences.value = compute_nr_root_seq(scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup,nb_preambles, frame_type, frequency_range);
     cfg->prach_config.num_prach_fd_occasions_list[i].num_root_sequences.tl.tag = NFAPI_NR_CONFIG_NUM_ROOT_SEQUENCES_TAG;
     cfg->num_tlv++;
-    cfg->prach_config.num_prach_fd_occasions_list[i].num_unused_root_sequences.value = 1;
+    cfg->prach_config.num_prach_fd_occasions_list[i].num_unused_root_sequences.value = 0;
+    cfg->prach_config.num_prach_fd_occasions_list[i].num_unused_root_sequences.tl.tag = NFAPI_NR_CONFIG_NUM_UNUSED_ROOT_SEQUENCES_TAG;
+    cfg->num_tlv++;
   }
 
   cfg->prach_config.ssb_per_rach.value = scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon->choice.setup->ssb_perRACH_OccasionAndCB_PreamblesPerSSB->present-1;
@@ -489,7 +491,7 @@ int rrc_mac_config_req_gNB(module_id_t Mod_idP,
 		  scc);
     LOG_D(NR_MAC, "%s() %s:%d RC.nrmac[Mod_idP]->if_inst->NR_PHY_config_req:%p\n", __FUNCTION__, __FILE__, __LINE__, RC.nrmac[Mod_idP]->if_inst->NR_PHY_config_req);
   
-    if (NFAPI_MODE == NFAPI_MODE_PNF || NFAPI_MODE == NFAPI_MODE_VNF) {
+    if (NFAPI_MODE == NFAPI_MODE_PNF || NFAPI_MODE == NFAPI_MODE_VNF || NFAPI_MODE == NFAPI_MODE_AERIAL) {
       // fake that the gNB is configured in nFAPI mode, which would normally be
       // done in a NR_PHY_config_req, but in this mode, there is no PHY
       RC.gNB[Mod_idP]->configured = 1;

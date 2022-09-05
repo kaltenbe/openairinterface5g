@@ -680,7 +680,7 @@ int main( int argc, char **argv ) {
   pthread_mutex_init(&sync_mutex, NULL);
   usleep(1000);
 
-  if (NFAPI_MODE) {
+  if (NFAPI_MODE && NFAPI_MODE != NFAPI_MODE_AERIAL) {
     printf("NFAPI*** - mutex and cond created - will block shortly for completion of PNF connection\n");
     pthread_cond_init(&sync_cond,NULL);
     pthread_mutex_init(&sync_mutex, NULL);
@@ -688,7 +688,7 @@ int main( int argc, char **argv ) {
 
 
 
-  printf("NFAPI MODE:%s\n", nfapi_mode_str);
+  printf("NFAPI MODE:%s\n", nfapi_get_strmode());
 
   printf("START MAIN THREADS\n");
   // start the main threads
@@ -742,7 +742,7 @@ int main( int argc, char **argv ) {
       load_softscope("nr",&p);
     }
 
-    if (NFAPI_MODE != NFAPI_MODE_PNF && NFAPI_MODE != NFAPI_MODE_VNF) {
+    if (NFAPI_MODE != NFAPI_MODE_PNF && NFAPI_MODE != NFAPI_MODE_VNF && NFAPI_MODE != NFAPI_MODE_AERIAL) {
       printf("Not NFAPI mode - call init_eNB_afterRU()\n");
       init_eNB_afterRU();
     } else {

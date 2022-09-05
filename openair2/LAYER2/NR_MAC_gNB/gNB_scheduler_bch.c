@@ -398,7 +398,7 @@ void nr_fill_nfapi_dl_sib1_pdu(int Mod_idP,
   nfapi_nr_dl_tti_request_pdu_t *dl_tti_pdcch_pdu = &dl_req->dl_tti_pdu_list[dl_req->nPDUs];
   memset((void*)dl_tti_pdcch_pdu,0,sizeof(nfapi_nr_dl_tti_request_pdu_t));
   dl_tti_pdcch_pdu->PDUType = NFAPI_NR_DL_TTI_PDCCH_PDU_TYPE;
-  dl_tti_pdcch_pdu->PDUSize = (uint8_t)(2+sizeof(nfapi_nr_dl_tti_pdcch_pdu));
+  dl_tti_pdcch_pdu->PDUSize = (uint16_t)(4+sizeof(nfapi_nr_dl_tti_pdcch_pdu));
   dl_req->nPDUs += 1;
   nfapi_nr_dl_tti_pdcch_pdu_rel15_t *pdcch_pdu_rel15 = &dl_tti_pdcch_pdu->pdcch_pdu.pdcch_pdu_rel15;
   nr_configure_pdcch(pdcch_pdu_rel15,
@@ -409,9 +409,15 @@ void nr_fill_nfapi_dl_sib1_pdu(int Mod_idP,
   nfapi_nr_dl_tti_request_pdu_t *dl_tti_pdsch_pdu = &dl_req->dl_tti_pdu_list[dl_req->nPDUs];
   memset((void*)dl_tti_pdsch_pdu,0,sizeof(nfapi_nr_dl_tti_request_pdu_t));
   dl_tti_pdsch_pdu->PDUType = NFAPI_NR_DL_TTI_PDSCH_PDU_TYPE;
-  dl_tti_pdsch_pdu->PDUSize = (uint8_t)(2+sizeof(nfapi_nr_dl_tti_pdsch_pdu));
+  dl_tti_pdsch_pdu->PDUSize = (uint16_t)(4+sizeof(nfapi_nr_dl_tti_pdsch_pdu));
   dl_req->nPDUs += 1;
   nfapi_nr_dl_tti_pdsch_pdu_rel15_t *pdsch_pdu_rel15 = &dl_tti_pdsch_pdu->pdsch_pdu.pdsch_pdu_rel15;
+
+  pdsch_pdu_rel15->precodingAndBeamforming.num_prgs=1;
+  pdsch_pdu_rel15->precodingAndBeamforming.prg_size=275;
+  pdsch_pdu_rel15->precodingAndBeamforming.dig_bf_interfaces=1;
+  pdsch_pdu_rel15->precodingAndBeamforming.prgs_list[0].pm_idx = 0;
+  pdsch_pdu_rel15->precodingAndBeamforming.prgs_list[0].dig_bf_interface_list[0].beam_idx = 0;
 
   pdcch_pdu_rel15->CoreSetType = NFAPI_NR_CSET_CONFIG_MIB_SIB1;
 
@@ -610,10 +616,11 @@ void schedule_nr_sib1(module_id_t module_idP, frame_t frameP, sub_frame_t slotP)
       // Data to be transmitted
       memcpy(tx_req->TLVs[0].value.direct, sib1_payload, TBS);
 
-      tx_req->PDU_length = TBS;
+      tx_req->PDU_length = TBS + 4;
       tx_req->PDU_index  = pdu_index;
       tx_req->num_TLV = 1;
-      tx_req->TLVs[0].length = TBS + 2;
+      tx_req->TLVs[0].tag = 0;
+      tx_req->TLVs[0].length = TBS;
       gNB_mac->TX_req[CC_id].Number_of_PDUs++;
       gNB_mac->TX_req[CC_id].SFN = frameP;
       gNB_mac->TX_req[CC_id].Slot = slotP;

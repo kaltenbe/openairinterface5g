@@ -65,7 +65,7 @@ const char *nfapi_get_strmode(void) {
 }
 
 void nfapi_logmode() {
-  LOG_I(ENB_APP,"nfapi running mode: %s\n",nfapi_get_strmode());
+  LOG_I(ENB_APP,"nfapi (%d) running mode: %s\n",nfapi_params.nfapi_mode,nfapi_get_strmode());
 }
 
 nfapi_mode_t nfapi_getmode(void) {
@@ -78,16 +78,15 @@ void nfapi_setmode(nfapi_mode_t nfapi_mode) {
   nfapi_logmode();
 }
 void nfapi_setmode_str(char* nfapi_mode){
-  if(strcasecmp(nfapi_mode,"MONOLITHIC")==0){
-    nfapi_params.nfapi_mode = NFAPI_MONOLITHIC;
-  }else if(strcasecmp(nfapi_mode,"PNF")==0){
-    nfapi_params.nfapi_mode = NFAPI_MODE_PNF;
-  }else if(strcasecmp(nfapi_mode,"VNF")==0){
-    nfapi_params.nfapi_mode = NFAPI_MODE_VNF;
-  }else if(strcasecmp(nfapi_mode,"AERIAL")==0){
-    nfapi_params.nfapi_mode = NFAPI_MODE_AERIAL;
-  }else{
-    nfapi_params.nfapi_mode = NFAPI_MODE_UNKNOWN;
+  printf("get_softmodem_params()->strnfapi = %s\n",nfapi_mode);
+
+  for(int i = 0 ; i < 8; i++){
+    if(strcasecmp(nfapi_mode,nfapi_str_mode[i])==0){
+      nfapi_params.nfapi_mode = i;
+      nfapi_logmode();
+      return;
+    }
   }
+  nfapi_params.nfapi_mode = NFAPI_MODE_UNKNOWN;
   nfapi_logmode();
 }
