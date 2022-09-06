@@ -401,58 +401,20 @@ int main(int argc, char **argv)
 
       switch ((char) *optarg) {
         case 'A':
-          channel_model = SCM_A;
-          printf("Channel model: SCM-A\n");
-          break;
-
-        case 'B':
-          channel_model = SCM_B;
-          printf("Channel model: SCM-B\n");
-          break;
-
-        case 'C':
-          channel_model = SCM_C;
-          printf("Channel model: SCM-C\n");
-          break;
-
-        case 'D':
-          channel_model = SCM_D;
-          printf("Channel model: SCM-D\n");
-          break;
-
-        case 'E':
-          channel_model = EPA;
-          printf("Channel model: EPA\n");
-          break;
-
-        case 'F':
-          channel_model = EVA;
-          printf("Channel model: EVA\n");
-          break;
-
-        case 'G':
-          channel_model = ETU;
-          printf("Channel model: ETU\n");
-          break;
-
-        case 'H':
           channel_model = TDL_A;
           DS_TDL = 0.030; // 30 ns
           printf("Channel model: TDLA30\n");
           break;
-
-        case 'I':
+        case 'B':
           channel_model = TDL_B;
           DS_TDL = 0.100; // 100ns
           printf("Channel model: TDLB100\n");
           break;
-
-        case 'J':
+        case 'C':
           channel_model = TDL_C;
           DS_TDL = 0.300; // 300 ns
           printf("Channel model: TDLC300\n");
           break;
-
         default:
           printf("Unsupported channel model!\n");
           exit(-1);
@@ -659,7 +621,9 @@ int main(int argc, char **argv)
       //printf("-d Use TDD\n");
       printf("-d Introduce delay in terms of number of samples\n");
       printf("-f Number of frames to simulate\n");
-      printf("-g Channel model configuration. Arguments list: Number of arguments = 2, {[A] SCM-A, [B] SCM-B, [C] SCM-C, [D] SCM-D, [E] EPA, [F] EVA, [G] ETU, [H] TDLA30, [I] TDLB100, [J] TDLC300}, {Correlation: [l] Low, [m] Medium, [h] High}, e.g. -g H,l\n");
+      printf(
+          "-g Channel model configuration. Arguments list: Number of arguments = 2, {Channel model: [A] TDLA30, [B] TDLB100, [C] TDLC300}, {Correlation: [l] Low, [m] Medium, [h] High}, e.g. -g "
+          "A,l\n");
       printf("-h This message\n");
       printf("-i Change channel estimation technique. Arguments list: Number of arguments=2, Frequency domain {0:Linear interpolation, 1:PRB based averaging}, Time domain {0:Estimates of last DMRS symbol, 1:Average of DMRS symbols}. e.g. -i 1,0\n");
       //printf("-j Relative strength of second intefering eNB (in dB) - cell_id mod 3 = 2\n");
