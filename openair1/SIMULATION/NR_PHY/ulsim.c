@@ -1100,13 +1100,14 @@ int main(int argc, char **argv)
   double blerStats[4][100];
   double berStats[4][100];
   double snrStats[100];
-  double ldpcDecStats[100] = {0};
+  double ldpcDecStats[100];
   memset(errors_scrambling, 0, sizeof(uint32_t)*4*100);
   memset(n_errors, 0, sizeof(int)*4*100);
   memset(round_trials, 0, sizeof(int)*4*100);
   memset(blerStats, 0, sizeof(double)*4*100);
   memset(berStats, 0, sizeof(double)*4*100);
-  memset(snrStats, 0, sizeof(double)*100);
+  memset(snrStats, 0, sizeof(double) * 100);
+  memset(ldpcDecStats, 0, sizeof(double) * 100);
   for (SNR = snr0; SNR < snr1; SNR += snr_step) {
     varArray_t *table_rx=initVarArray(1000,sizeof(double));
     int error_flag = 0;
