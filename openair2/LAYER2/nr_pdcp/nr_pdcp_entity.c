@@ -31,6 +31,7 @@
 #include "nr_pdcp_sdu.h"
 
 #include "LOG/log.h"
+#include "common/utils/LATSEQ/latseq.h"
 
 static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
                                     char *_buffer, int size)
@@ -121,6 +122,7 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
   sdu = nr_pdcp_new_sdu(rcvd_count,
                         (char *)buffer + header_size,
                         size - header_size - integrity_size);
+  LATSEQ_P("U pdcp.pdu.decoded--pdcp.sdu.push", "len%d::bufaddress%d.rb_id%d.rcvd_sn%d.recv_count%d.rcvd_hfn%d.rx_deliv_sn%d.rx_deliv_hfn%d", size, &buffer, entity->rb_id, rcvd_sn, rcvd_count, rcvd_hfn, rx_deliv_sn, rx_deliv_hfn);
   entity->rx_list = nr_pdcp_sdu_list_add(entity->rx_list, sdu);
   entity->rx_size += size-header_size;
 

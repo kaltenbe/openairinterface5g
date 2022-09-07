@@ -78,7 +78,7 @@ void sdap_data_ind(rb_id_t pdcp_entity,
     return;
   }
   
-  LATSEQ_P("U sdap.pdu--sdap.sdu", "len%d:rnti%d:pdusession_id%d.pdcp_entity%d.sdap_default_drb%d", size, rnti, pdusession_id, pdcp_entity, sdap_entity->default_drb);
+  LATSEQ_P("U sdap.pdu--sdap.sdu", "len%d:rnti%d:pdusession_id%d.pdcp_entity%d.sdap_default_drb%d.bufaddress%d", size, rnti, pdusession_id, pdcp_entity, sdap_entity->default_drb, &buf);
   sdap_entity->rx_entity(sdap_entity,
                          pdcp_entity,
                          is_gnb,
