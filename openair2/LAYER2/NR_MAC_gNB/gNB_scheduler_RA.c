@@ -1433,6 +1433,11 @@ void nr_generate_Msg4(module_id_t module_idP, int CC_id, frame_t frameP, sub_fra
     uint8_t time_domain_assignment = 0;
     uint8_t mcsIndex = 0;
 
+    if (nr_mac_rrc_check_RRCSetup(module_idP, ra->rnti) <= 0){
+      ra->Msg4_frame++;
+      return;
+    }
+
     NR_ServingCellConfigCommon_t *scc = cc->ServingCellConfigCommon;
     NR_SearchSpace_t *ss = ra->ra_ss;
 
