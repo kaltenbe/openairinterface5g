@@ -85,12 +85,10 @@
 #include "rrc_eNB_S1AP.h"
 #include "rrc_gNB_NGAP.h"
 
-#include "rrc_eNB_GTPV1U.h"
+#include "rrc_gNB_GTPV1U.h"
 
 #include "nr_pdcp/nr_pdcp_entity.h"
 #include "pdcp.h"
-#include "gtpv1u_eNB_task.h"
-
 
 #include "intertask_interface.h"
 #include "SIMULATION/TOOLS/sim.h" // for taus
@@ -1647,7 +1645,7 @@ rrc_gNB_process_RRCConnectionReestablishmentComplete(
       }
     }
 
-    create_tunnel_req.rnti       = ctxt_pP->rnti; // warning put zero above
+    create_tunnel_req.ue_id         = ctxt_pP->rnti; // warning put zero above
     create_tunnel_req.num_tunnels    = j;
     ret = gtpv1u_update_ngu_tunnel(
             ctxt_pP->instance,
@@ -3426,10 +3424,10 @@ static void rrc_DU_process_ue_context_modification_request(MessageDef *msg_p, co
       int rlc_tx_buffer_space = nr_rlc_get_available_tx_space(rnti, drb_id);
       LOG_I(NR_RRC, "Reported in DDD drb_id:%d, rnti:%d\n", drb_id, rnti);
       MessageDef *msg = itti_alloc_new_message_sized(TASK_RRC_GNB, 0, GTPV1U_DU_BUFFER_REPORT_REQ,
-                                     sizeof(gtpv1u_gnb_tunnel_data_req_t));
+                                     sizeof(gtpv1u_tunnel_data_req_t));
       gtpv1u_DU_buffer_report_req_t *req=&GTPV1U_DU_BUFFER_REPORT_REQ(msg);
       req->pdusession_id = drb_id;
-      req->rnti = rnti;
+      req->ue_id = rnti;
       req->buffer_availability = rlc_tx_buffer_space; //10000000; //Hardcoding to be removed and read the actual RLC buffer availability instead
       extern instance_t DUuniqInstance;
       itti_send_msg_to_task(TASK_GTPV1_U, DUuniqInstance, msg);
@@ -3767,12 +3765,12 @@ void nr_rrc_subframe_process(protocol_ctxt_t *const ctxt_pP, const int CC_id) {
 
     if (fd) {
       if (ue_context_p->ue_context.Initialue_identity_5g_s_TMSI.presence == true) {
-        fprintf(fd,"NR RRC UE rnti %x: S-TMSI %x failure timer %d/8\n",
+        fprintf(fd,"NR RRC UE rnti %lx: S-TMSI %x failure timer %d/8\n",
                 ue_context_p->ue_id_rnti,
                 ue_context_p->ue_context.Initialue_identity_5g_s_TMSI.fiveg_tmsi,
                 ue_context_p->ue_context.ul_failure_timer);
       } else {
-        fprintf(fd,"NR RRC UE rnti %x failure timer %d/8\n",
+        fprintf(fd,"NR RRC UE rnti %lx failure timer %d/8\n",
                 ue_context_p->ue_id_rnti,
                 ue_context_p->ue_context.ul_failure_timer);
       }
