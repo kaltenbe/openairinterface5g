@@ -118,11 +118,11 @@ static void nr_pdcp_entity_recv_pdu(nr_pdcp_entity_t *entity,
     LOG_W(PDCP, "discard NR PDU rcvd_count=%d, entity->rx_deliv %d,sdu_in_list %d\n", rcvd_count,entity->rx_deliv,nr_pdcp_sdu_in_list(entity->rx_list,rcvd_count));
     return;
   }
+  LATSEQ_P("U pdcp.pdu.decoded--pdcp.sdu.push", "len%d::bufaddress%016llx.buf+pdcpheaderaddress%016llx.rb_id%d.rcvd_sn%d.recv_count%d.rcvd_hfn%d.rx_deliv_sn%d.rx_deliv_hfn%d", size, buffer, buffer+header_size, entity->rb_id, rcvd_sn, rcvd_count, rcvd_hfn, rx_deliv_sn, rx_deliv_hfn);
 
   sdu = nr_pdcp_new_sdu(rcvd_count,
                         (char *)buffer + header_size,
                         size - header_size - integrity_size);
-  LATSEQ_P("U pdcp.pdu.decoded--pdcp.sdu.push", "len%d::bufaddress%d.rb_id%d.rcvd_sn%d.recv_count%d.rcvd_hfn%d.rx_deliv_sn%d.rx_deliv_hfn%d", size, &buffer, entity->rb_id, rcvd_sn, rcvd_count, rcvd_hfn, rx_deliv_sn, rx_deliv_hfn);
   entity->rx_list = nr_pdcp_sdu_list_add(entity->rx_list, sdu);
   entity->rx_size += size-header_size;
 
