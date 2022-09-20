@@ -214,6 +214,7 @@ uint8_t get_mcs_from_cqi(int mcs_table, int cqi_table, int cqi_idx)
   return 9;
 }
 
+
 void set_dl_dmrs_ports(NR_pdsch_semi_static_t *ps) {
 
   //TODO first basic implementation of dmrs port selection
@@ -883,7 +884,6 @@ void nr_configure_css_dci_initial(nfapi_nr_dl_tti_pdcch_pdu_rel15_t* pdcch_pdu,
 
 void config_uldci(const NR_SIB1_t *sib1,
                   const NR_ServingCellConfigCommon_t *scc,
-                  const NR_CellGroupConfig_t *cg,
                   const nfapi_nr_pusch_pdu_t *pusch_pdu,
                   dci_pdu_rel15_t *dci_pdu_rel15,
                   nr_srs_feedback_t *srs_feedback,
@@ -921,15 +921,7 @@ void config_uldci(const NR_SIB1_t *sib1,
           pusch_Config->txConfig != NULL) {
         AssertFatal(*pusch_Config->txConfig == NR_PUSCH_Config__txConfig_codebook,
                     "Non Codebook configuration non supported\n");
-        NR_UplinkConfig_t	*uplinkConfig = NULL;
-        if (cg && cg->spCellConfig && cg->spCellConfig->spCellConfigDedicated) {
-          uplinkConfig = cg->spCellConfig->spCellConfigDedicated->uplinkConfig;
-        }
-        compute_srs_resource_indicator(uplinkConfig,
-                                       pusch_Config,
-                                       ul_bwp->srs_Config,
-                                       srs_feedback,
-                                       &dci_pdu_rel15->srs_resource_indicator.val);
+        compute_srs_resource_indicator(ul_bwp->pusch_servingcellconfig, pusch_Config, ul_bwp->srs_Config, srs_feedback, &dci_pdu_rel15->srs_resource_indicator.val);
       }
       compute_precoding_information(pusch_Config,
                                     ul_bwp->srs_Config,

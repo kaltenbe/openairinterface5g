@@ -188,7 +188,6 @@ void handle_nr_uci_pucch_2_3_4(module_id_t mod_id,
 
 void config_uldci(const NR_SIB1_t *sib1,
                   const NR_ServingCellConfigCommon_t *scc,
-                  const NR_CellGroupConfig_t *cg,
                   const nfapi_nr_pusch_pdu_t *pusch_pdu,
                   dci_pdu_rel15_t *dci_pdu_rel15,
                   nr_srs_feedback_t *srs_feedback,
@@ -470,7 +469,6 @@ uint16_t set_pm_index(NR_UE_sched_ctrl_t *sched_ctrl,
                       int codebook_mode);
 
 uint8_t get_mcs_from_cqi(int mcs_table, int cqi_table, int cqi_idx);
-
 uint8_t set_dl_nrOfLayers(NR_UE_sched_ctrl_t *sched_ctrl);
 
 const int get_dl_tda(const gNB_MAC_INST *nrmac, const NR_ServingCellConfigCommon_t *scc, int slot);
