@@ -2974,26 +2974,17 @@ void nr_mac_update_timers(module_id_t module_id,
         const uint8_t layers = set_dl_nrOfLayers(sched_ctrl);
         const int tda = get_dl_tda(RC.nrmac[module_id], scc, slot);
 
-        nr_set_pdsch_semi_static(&UE->current_DL_BWP,
-                                 scc,
-                                 tda,
-                                 layers,
-                                 sched_ctrl,
-                                 ps);
+        nr_set_pdsch_semi_static(&UE->current_DL_BWP, scc, tda, layers, sched_ctrl, ps);
 
+        sched_ctrl->srs_feedback.ul_ri = 0;
+        sched_ctrl->srs_feedback.tpmi = 0;
+        sched_ctrl->srs_feedback.sri = 0;
 
         NR_pusch_semi_static_t *ups = &sched_ctrl->pusch_semi_static;
-        ups->srs_feedback.ul_ri = 0;
-        ups->srs_feedback.tpmi = 0;
-        ups->srs_feedback.sri = 0;
-        const uint8_t nrOfLayers = ups->srs_feedback.ul_ri + 1;
+        const uint8_t nrOfLayers = sched_ctrl->srs_feedback.ul_ri + 1;
         const int utda = get_ul_tda(RC.nrmac[module_id], scc, slot);
 
-        nr_set_pusch_semi_static(&UE->current_UL_BWP,
-                                 scc,
-                                 utda,
-                                 nrOfLayers,
-                                 ups);
+        nr_set_pusch_semi_static(&UE->current_UL_BWP, scc, utda, nrOfLayers, ups);
       }
     }
 
