@@ -1408,7 +1408,7 @@ uint8_t phy_threegpplte_turbo_decoder16(int16_t *y,
 
     // check status on output
     if (iteration_cnt>1) {
-      oldcrc= *((unsigned int *)(&decoded_bytes[(n>>3)-crc_len]));
+      memcpy(&oldcrc, &decoded_bytes[(n >> 3) - crc_len], sizeof(oldcrc));
 
       switch (crc_type) {
         case CRC24_A:
