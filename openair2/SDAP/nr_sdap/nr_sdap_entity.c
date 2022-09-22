@@ -212,7 +212,7 @@ static void nr_sdap_rx_entity(nr_sdap_entity_t *entity,
     GTPV1U_GNB_TUNNEL_DATA_REQ(message_p).pdusession_id       = pdusession_id;
     LOG_D(SDAP, "%s()  sending message to gtp size %d\n", __func__,  size-offset);
     itti_send_msg_to_task(TASK_GTPV1_U, INSTANCE_DEFAULT, message_p);
-    LATSEQ_P("U sdap.sdu--gtp.out", "len%d:rnti%d:pdusession_id%d.rb_id%d.sdap_default_drb%d.bufaddress%016llx", size-offset, rnti, pdusession_id, pdcp_entity, entity->default_drb, buf);
+    LATSEQ_P("U sdap.sdu--gtp.out", "len%d:rnti%d:pdusession_id%d.rb_id%d.sdap_default_drb%d.bufaddress%d", size-offset, rnti, pdusession_id, pdcp_entity, entity->default_drb, buf);
   } else { //nrUE
     /*
      * TS 37.324 5.2 Data transfer

@@ -561,7 +561,7 @@ rb_found:
   }
   memcpy(memblock->data, buf, size);
   LOG_D(PDCP, "Calling PDCP layer from RLC in %s\n", __FUNCTION__);
-  LATSEQ_P("U rlc.sdu.push--pdcp.pdu.enqueue", "len%d:rnti%d:rb_id%d.memblck_poolid%d.bufaddress%016llx", size, ctx.rnti, rb_id, memblock->pool_id, buf);
+  LATSEQ_P("U rlc.sdu.push--pdcp.pdu.enqueue", "len%d:rnti%d:rb_id%d.memblck_poolid%d.bufaddress%d", size, ctx.rnti, rb_id, memblock->pool_id, buf);
   if (!pdcp_data_ind(&ctx, is_srb, 0, rb_id, size, memblock, NULL, NULL)) {
     LOG_E(RLC, "%s:%d:%s: ERROR: pdcp_data_ind failed\n", __FILE__, __LINE__, __FUNCTION__);
     /* what to do in case of failure? for the moment: nothing */

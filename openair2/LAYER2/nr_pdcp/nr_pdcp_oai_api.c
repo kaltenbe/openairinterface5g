@@ -274,7 +274,7 @@ static void do_pdcp_data_ind(
   }
 
   if (rb != NULL) {
-    LATSEQ_P("U pdcp.pdu.pull--pdcp.pdu.decoded", "len%d:rnti%d:rb_id%d.memblck_poolid%d.bufaddress%016llx", sdu_buffer_size, ctxt_pP->rnti, rb_id, sdu_buffer->pool_id, &(sdu_buffer->data));
+    LATSEQ_P("U pdcp.pdu.pull--pdcp.pdu.decoded", "len%d:rnti%d:rb_id%d.memblck_poolid%d.bufaddress%d", sdu_buffer_size, ctxt_pP->rnti, rb_id, sdu_buffer->pool_id, &(sdu_buffer->data));
     rb->recv_pdu(rb, (char *)sdu_buffer->data, sdu_buffer_size);
   } else {
     LOG_E(PDCP, "%s:%d:%s: no RB found (rb_id %ld, srb_flag %d)\n",
@@ -625,7 +625,7 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
 
   if (IS_SOFTMODEM_NOS1 || UE_NAS_USE_TUN) {
     LOG_D(PDCP, "IP packet received with size %d, to be sent to SDAP interface, UE rnti: %d\n", size, ue->rnti);
-    LATSEQ_P("U pdcp.sdu.push1--sdap.pdu", "len%d:rnti%d:rb_id%d.buf+pdcpheaderaddress%016llx.pdusession_id%d.bufaddress%016llx", size, ue->rnti, entity->rb_id, buf, entity->pdusession_id, buf);
+    LATSEQ_P("U pdcp.sdu.push1--sdap.pdu", "len%d:rnti%d:rb_id%d.buf+pdcpheaderaddress%d.pdusession_id%d.bufaddress%d", size, ue->rnti, entity->rb_id, buf, entity->pdusession_id, buf);
     sdap_data_ind(entity->rb_id,
                   entity->is_gnb,
                   entity->has_sdap,
@@ -650,7 +650,7 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
     rb_found:
     {
       LOG_D(PDCP, "%s() (drb %d) sending message to SDAP size %d\n", __func__, rb_id, size);
-      LATSEQ_P("U pdcp.sdu.push2--sdap.pdu", "len%d:rnti%d:rb_id%d.buf+pdcpheaderaddress%016llx.pdusession_id%d.bufaddress%016llx", size, ue->rnti, rb_id, buf, ue->drb[rb_id-1]->pdusession_id, buf);
+      LATSEQ_P("U pdcp.sdu.push2--sdap.pdu", "len%d:rnti%d:rb_id%d.buf+pdcpheaderaddress%d.pdusession_id%d.bufaddress%d", size, ue->rnti, rb_id, buf, ue->drb[rb_id-1]->pdusession_id, buf);
       sdap_data_ind(rb_id,
                     ue->drb[rb_id-1]->is_gnb,
                     ue->drb[rb_id-1]->has_sdap,
