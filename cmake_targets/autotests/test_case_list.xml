@@ -1316,10 +1316,49 @@
                                  (Test16: MCS 9 106 PRBs MIMO 2 layers),
                                  (Test17: MCS 9 106 PRBs MIMO 4 layers),
                                  (Test18: 25 PRBs, 15 kHz SCS),
-                                 (Test19: 3GPP G-FR1-A4-13 2 RX Antennas Requirements Test),
-                                 (Test20: 3GPP G-FR1-A4-13 4 RX Antennas Requirements Test),
-                                 (Test21: 3GPP G-FR1-A4-13 8 RX Antennas Requirements Test),
-                                 (Test22: MCS 0, low SNR performance)</desc>
+                                 (Test19: MCS 0, low SNR performance),
+                                 (Test20: 3GPP G-FR1-A5-8, DMRS Type A, 5 MHz BW, 15 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test21: 3GPP G-FR1-A5-8, DMRS Type A, 5 MHz BW, 15 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test22: 3GPP G-FR1-A5-8, DMRS Type A, 5 MHz BW, 15 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test23: 3GPP G-FR1-A5-9, DMRS Type A, 10 MHz BW, 15 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test24: 3GPP G-FR1-A5-9, DMRS Type A, 10 MHz BW, 15 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test25: 3GPP G-FR1-A5-9, DMRS Type A, 10 MHz BW, 15 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test26: 3GPP G-FR1-A5-10, DMRS Type A, 20 MHz BW, 15 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test27: 3GPP G-FR1-A5-10, DMRS Type A, 20 MHz BW, 15 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test28: 3GPP G-FR1-A5-10, DMRS Type A, 20 MHz BW, 15 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test29: 3GPP G-FR1-A5-11, DMRS Type A, 10 MHz BW, 30 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test30: 3GPP G-FR1-A5-11, DMRS Type A, 10 MHz BW, 30 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test31: 3GPP G-FR1-A5-11, DMRS Type A, 10 MHz BW, 30 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test32: 3GPP G-FR1-A5-12, DMRS Type A, 20 MHz BW, 30 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test33: 3GPP G-FR1-A5-12, DMRS Type A, 20 MHz BW, 30 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test34: 3GPP G-FR1-A5-12, DMRS Type A, 20 MHz BW, 30 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test35: 3GPP G-FR1-A5-13, DMRS Type A, 40 MHz BW, 30 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test36: 3GPP G-FR1-A5-13, DMRS Type A, 40 MHz BW, 30 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test37: 3GPP G-FR1-A5-13, DMRS Type A, 40 MHz BW, 30 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test38: 3GPP G-FR1-A5-14, DMRS Type A, 100 MHz BW, 30 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test39: 3GPP G-FR1-A5-14, DMRS Type A, 100 MHz BW, 30 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test40: 3GPP G-FR1-A5-14, DMRS Type A, 100 MHz BW, 30 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test41: 3GPP G-FR1-A5-8, DMRS Type B, 5 MHz BW, 15 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test42: 3GPP G-FR1-A5-8, DMRS Type B, 5 MHz BW, 15 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test43: 3GPP G-FR1-A5-8, DMRS Type B, 5 MHz BW, 15 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test44: 3GPP G-FR1-A5-9, DMRS Type B, 10 MHz BW, 15 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test45: 3GPP G-FR1-A5-9, DMRS Type B, 10 MHz BW, 15 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test46: 3GPP G-FR1-A5-9, DMRS Type B, 10 MHz BW, 15 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test47: 3GPP G-FR1-A5-10, DMRS Type B, 20 MHz BW, 15 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test48: 3GPP G-FR1-A5-10, DMRS Type B, 20 MHz BW, 15 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test49: 3GPP G-FR1-A5-10, DMRS Type B, 20 MHz BW, 15 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test50: 3GPP G-FR1-A5-11, DMRS Type B, 10 MHz BW, 30 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test51: 3GPP G-FR1-A5-11, DMRS Type B, 10 MHz BW, 30 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test52: 3GPP G-FR1-A5-11, DMRS Type B, 10 MHz BW, 30 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test53: 3GPP G-FR1-A5-12, DMRS Type B, 20 MHz BW, 30 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test54: 3GPP G-FR1-A5-12, DMRS Type B, 20 MHz BW, 30 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test55: 3GPP G-FR1-A5-12, DMRS Type B, 20 MHz BW, 30 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test56: 3GPP G-FR1-A5-13, DMRS Type B, 40 MHz BW, 30 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test57: 3GPP G-FR1-A5-13, DMRS Type B, 40 MHz BW, 30 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test58: 3GPP G-FR1-A5-13, DMRS Type B, 40 MHz BW, 30 kHz SCS, 8 RX Antennas Requirements Test),
+                                 (Test59: 3GPP G-FR1-A5-14, DMRS Type A, 100 MHz BW, 30 kHz SCS, 2 RX Antennas Requirements Test),
+                                 (Test60: 3GPP G-FR1-A5-14, DMRS Type A, 100 MHz BW, 30 kHz SCS, 4 RX Antennas Requirements Test),
+                                 (Test61: 3GPP G-FR1-A5-14, DMRS Type A, 100 MHz BW, 30 kHz SCS, 8 RX Antennas Requirements Test)</desc>
       <pre_compile_prog></pre_compile_prog>
       <compile_prog>$OPENAIR_DIR/cmake_targets/build_oai</compile_prog>
       <compile_prog_args> --phy_simulators  -c </compile_prog_args>
@@ -1334,21 +1373,60 @@
                       -n100 -s5 -U 0,1,1,1
                       -n100 -s5 -T 1,2 -U 0,2,1,1
                       -n100 -s5 -T 2,2 -U 1,2,1,1
-          -n100 -s5 -a4 -b8 -T 1,2 -U 1,3,1,1
-          -n100 -s5 -Z
-          -n100 -s5 -Z -r75
-          -n50 -s5 -Z -r216 -R217
-          -n50 -s5 -Z -r270 -R273
-          -n100 -s5 -Z -U 0,2,1,2
-          -n100 -m19 -s10 -S15 -z2
-          -n100 -m9 -r106 -s8 -W2 -y2 -z2
-          -n100 -m9 -r106 -s10 -W4 -y4 -z4
-          -n100 -u0 -m0 -R25 -r25 -i 1,0
-          -m16 -r106 -s8.8 -S9.4 -z2 -n200 -U 1,1,1,2 -g C,l -b14 -t70 -I15 -i 1,0
-          -m16 -r106 -s5.4 -S6 -z4 -n200 -U 1,1,1,2 -g C,l -b14 -t70 -I15 -i 1,0
-          -m16 -r106 -s3.4 -S3.8 -z8 -n200 -U 1,1,1,2 -g C,l -b14 -t70 -I15 -i 1,0
-          -n100 -m0 -S -0.6 -i 1,0</main_exec_args>
-      <tags>nr_ulsim.test1 nr_ulsim.test2 nr_ulsim.test3 nr_ulsim.test4 nr_ulsim.test5 nr_ulsim.test6 nr_ulsim.test7 nr_ulsim.test8 nr_ulsim.test9 nr_ulsim.test10 nr_ulsim.test11 nr_ulsim.test12 nr_ulsim.test13 nr_ulsim.test14 nr_ulsim.test15 nr_ulsim.test16 nr_ulsim.test17 nr_ulsim.test18 nr_ulsim.test19 nr_ulsim.test20 nr_ulsim.test21 nr_ulsim.test22</tags>
+                      -n100 -s5 -a4 -b8 -T 1,2 -U 1,3,1,1
+                      -n100 -s5 -Z
+                      -n100 -s5 -Z -r75
+                      -n50 -s5 -Z -r216 -R217
+                      -n50 -s5 -Z -r270 -R273
+                      -n100 -s5 -Z -U 0,2,1,2
+                      -n100 -m19 -s10 -S15 -z2
+                      -n100 -m9 -r106 -s8 -W2 -y2 -z2
+                      -n100 -m9 -r106 -s10 -W4 -y4 -z4
+                      -n100 -u0 -m0 -R25 -r25 -i 1,0
+                      -n100 -m0 -S -0.6 -i 1,0
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 0,1,1,2 -z2 -s12.3 -S12.3
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 0,1,1,2 -z4 -s8.8 -S8.8
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 0,1,1,2 -z8 -s5.6 -S5.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 0,1,1,2 -z2 -s12.2 -S12.2
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 0,1,1,2 -z4 -s8.6 -S8.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 0,1,1,2 -z8 -s5.5 -S5.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 0,1,1,2 -z2 -s12.4 -S12.4
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 0,1,1,2 -z4 -s8.6 -S8.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 0,1,1,2 -z8 -s5.5 -S5.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 0,1,1,2 -z2 -s12.8 -S12.8
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 0,1,1,2 -z4 -s8.6 -S8.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 0,1,1,2 -z8 -s5.5 -S5.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 0,1,1,2 -z2 -s12.5 -S12.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 0,1,1,2 -z4 -s8.6 -S8.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 0,1,1,2 -z8 -s5.5 -S5.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 0,1,1,2 -z2 -s12.4 -S12.4
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 0,1,1,2 -z4 -s8.5 -S8.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 0,1,1,2 -z8 -s5.4 -S5.4
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 0,1,1,2 -z2 -s13.0 -S13.0
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 0,1,1,2 -z4 -s9.0 -S9.0
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 0,1,1,2 -z8 -s5.8 -S5.8
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 1,1,1,2 -z2 -s12.5 -S12.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 1,1,1,2 -z4 -s8.9 -S8.9
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 1,1,1,2 -z8 -s5.7 -S5.7
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 1,1,1,2 -z2 -s12.6 -S12.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 1,1,1,2 -z4 -s8.9 -S8.9
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 1,1,1,2 -z8 -s5.8 -S5.8
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 1,1,1,2 -z2 -s12.3 -S12.3
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 1,1,1,2 -z4 -s8.8 -S8.8
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 1,1,1,2 -z8 -s5.7 -S5.7
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 1,1,1,2 -z2 -s12.5 -S12.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 1,1,1,2 -z4 -s8.6 -S8.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 1,1,1,2 -z8 -s5.6 -S5.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 1,1,1,2 -z2 -s12.5 -S12.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 1,1,1,2 -z4 -s8.6 -S8.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 1,1,1,2 -z8 -s5.6 -S5.6
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 1,1,1,2 -z2 -s12.5 -S12.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 1,1,1,2 -z4 -s8.7 -S8.7
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 1,1,1,2 -z8 -s5.5 -S5.5
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 1,1,1,2 -z2 -s13.1 -S13.1
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 1,1,1,2 -z4 -s9.2 -S9.2
+                      -n200 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 1,1,1,2 -z8 -s5.9 -S5.9</main_exec_args>
+      <tags>nr_ulsim.test1 nr_ulsim.test2 nr_ulsim.test3 nr_ulsim.test4 nr_ulsim.test5 nr_ulsim.test6 nr_ulsim.test7 nr_ulsim.test8 nr_ulsim.test9 nr_ulsim.test10 nr_ulsim.test11 nr_ulsim.test12 nr_ulsim.test13 nr_ulsim.test14 nr_ulsim.test15 nr_ulsim.test16 nr_ulsim.test17 nr_ulsim.test18 nr_ulsim.test19 nr_ulsim.test20 nr_ulsim.test21 nr_ulsim.test22 nr_ulsim.test23 nr_ulsim.test24 nr_ulsim.test25 nr_ulsim.test26 nr_ulsim.test27 nr_ulsim.test28 nr_ulsim.test29 nr_ulsim.test30 nr_ulsim.test31 nr_ulsim.test32 nr_ulsim.test33 nr_ulsim.test34 nr_ulsim.test35 nr_ulsim.test36 nr_ulsim.test37 nr_ulsim.test38 nr_ulsim.test39 nr_ulsim.test40 nr_ulsim.test41 nr_ulsim.test42 nr_ulsim.test43 nr_ulsim.test44 nr_ulsim.test45 nr_ulsim.test46 nr_ulsim.test47 nr_ulsim.test48 nr_ulsim.test49 nr_ulsim.test50 nr_ulsim.test51 nr_ulsim.test52 nr_ulsim.test53 nr_ulsim.test54 nr_ulsim.test55 nr_ulsim.test56 nr_ulsim.test57 nr_ulsim.test58 nr_ulsim.test59 nr_ulsim.test60 nr_ulsim.test61</tags>
       <search_expr_true>PUSCH test OK</search_expr_true>
       <search_expr_false>segmentation fault|assertion|exiting|fatal</search_expr_false>
       <nruns>3</nruns>

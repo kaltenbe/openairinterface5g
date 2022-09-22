@@ -1070,7 +1070,7 @@ int main(int argc, char **argv)
   memset(berStats, 0, sizeof(double)*4*100);
   memset(snrStats, 0, sizeof(double) * 100);
   memset(ldpcDecStats, 0, sizeof(double) * 100);
-  for (SNR = snr0; SNR < snr1; SNR += snr_step) {
+  for (SNR = snr0; SNR <= snr1; SNR += snr_step) {
     varArray_t *table_rx=initVarArray(1000,sizeof(double));
     int error_flag = 0;
     n_false_positive = 0;
