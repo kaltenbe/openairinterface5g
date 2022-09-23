@@ -2709,10 +2709,10 @@ uint8_t get_csirs_RI_PMI_CQI_payload(NR_UE_MAC_INST_t *mac,
 
           if (get_softmodem_params()->emulate_l1) {
             static const uint8_t mcs_to_cqi[] = {0, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
-                                                10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15};
+                                                 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15};
             CHECK_INDEX(nr_bler_data, NR_NUM_MCS-1);
             int mcs = get_mcs_from_sinr(nr_bler_data, (mac->nr_ue_emul_l1.cqi - 640) * 0.1);
-              CHECK_INDEX(mcs_to_cqi, mcs);
+            CHECK_INDEX(mcs_to_cqi, mcs);
             mac->csirs_measurements.rank_indicator = mac->nr_ue_emul_l1.ri;
             mac->csirs_measurements.i1 = mac->nr_ue_emul_l1.pmi;
             mac->csirs_measurements.cqi = mcs_to_cqi[mcs];
