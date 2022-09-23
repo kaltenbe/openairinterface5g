@@ -562,7 +562,7 @@ static void init_bler_table(void) {
     snprintf(fName, sizeof(fName), "%s/mcs%d_awgn_5G.csv", awgn_results_dir, i);
     FILE *pFile = fopen(fName, "r");
     if (!pFile) {
-      LOG_E(NR_MAC, "open %s: %s\n", fName, strerror(errno));
+      LOG_E(NR_MAC, "%s: open %s: %s\n", __func__, fName, strerror(errno));
       continue;
     }
     size_t bufSize = 1024;
