@@ -1004,7 +1004,6 @@ int main(int argc, char **argv)
 
   //for (int i=0;i<16;i++) printf("%f\n",gaussdouble(0.0,1.0));
   snrRun = 0;
-  int n_errs = 0;
   int read_errors=0;
 
   int slot_offset = frame_parms->get_samples_slot_timestamp(slot,frame_parms,0);
@@ -1055,7 +1054,8 @@ int main(int argc, char **argv)
     mod_order = nr_get_Qm_ul(Imcs, mcs_table);
     code_rate = nr_get_code_rate_ul(Imcs, mcs_table);
   }
-  
+
+  int ret = 1;
   uint32_t errors_scrambling[4][100];
   int n_errors[4][100];
   int round_trials[4][100];
@@ -1070,6 +1070,7 @@ int main(int argc, char **argv)
   memset(berStats, 0, sizeof(double)*4*100);
   memset(snrStats, 0, sizeof(double) * 100);
   memset(ldpcDecStats, 0, sizeof(double) * 100);
+
   for (SNR = snr0; SNR <= snr1; SNR += snr_step) {
     varArray_t *table_rx=initVarArray(1000,sizeof(double));
     int error_flag = 0;
@@ -1612,12 +1613,12 @@ int main(int argc, char **argv)
       printf("*************\n");
       printf("PUSCH test OK\n");
       printf("*************\n");
+      ret = 0;
       break;
     }
 
     snrStats[snrRun] = SNR;
     snrRun++;
-    n_errs = n_errors[0][snrRun];
   } // SNR loop
   printf("\n");
 
@@ -1666,5 +1667,5 @@ int main(int argc, char **argv)
   if (scg_fd)
     fclose(scg_fd);
 
-  return (n_errs);
+  return ret;
 }
