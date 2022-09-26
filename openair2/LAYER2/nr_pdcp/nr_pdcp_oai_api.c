@@ -625,7 +625,6 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
 
   if (IS_SOFTMODEM_NOS1 || UE_NAS_USE_TUN) {
     LOG_D(PDCP, "IP packet received with size %d, to be sent to SDAP interface, UE rnti: %d\n", size, ue->rnti);
-    LATSEQ_P("U pdcp.sdu.push1--sdap.pdu", "len%d:rnti%d:rb_id%d.buf+pdcpheaderaddress%d.pdusession_id%d.bufaddress%d", size, ue->rnti, entity->rb_id, buf, entity->pdusession_id, buf);
     sdap_data_ind(entity->rb_id,
                   entity->is_gnb,
                   entity->has_sdap,
@@ -650,7 +649,7 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
     rb_found:
     {
       LOG_D(PDCP, "%s() (drb %d) sending message to SDAP size %d\n", __func__, rb_id, size);
-      LATSEQ_P("U pdcp.sdu.push2--sdap.pdu", "len%d:rnti%d:rb_id%d.buf+pdcpheaderaddress%d.pdusession_id%d.bufaddress%d", size, ue->rnti, rb_id, buf, ue->drb[rb_id-1]->pdusession_id, buf);
+      LATSEQ_P("U pdcp.sdu.push--sdap.pdu", "len%d:rnti%d:rb_id%d.buf+pdcpheaderaddress%d.pdusession_id%d.bufaddress%d", size, ue->rnti, rb_id, buf, ue->drb[rb_id-1]->pdusession_id, buf);
       sdap_data_ind(rb_id,
                     ue->drb[rb_id-1]->is_gnb,
                     ue->drb[rb_id-1]->has_sdap,
