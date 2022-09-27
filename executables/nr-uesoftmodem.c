@@ -451,13 +451,8 @@ int main( int argc, char **argv ) {
   uint16_t node_number = get_softmodem_params()->node_number;
   ue_id_g = (node_number == 0) ? 0 : node_number - 1;
   AssertFatal(ue_id_g >= 0, "UE id is expected to be nonnegative.\n");
-  if(IS_SOFTMODEM_NOS1 || get_softmodem_params()->sa || get_softmodem_params()->nsa) {
-    if(node_number == 0) {
-      init_pdcp(0);
-    }
-    else {
+  if (IS_SOFTMODEM_NOS1 || get_softmodem_params()->emulate_l1) {
       init_pdcp(node_number);
-    }
   }
 
   NB_UE_INST=1;
