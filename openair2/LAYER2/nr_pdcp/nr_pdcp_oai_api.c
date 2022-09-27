@@ -274,7 +274,7 @@ static void do_pdcp_data_ind(
   }
 
   if (rb != NULL) {
-    LATSEQ_P("U pdcp.pdu.pull--pdcp.pdu.decoded", "len%d:rnti%d:rb_id%d.memblck_poolid%d.bufaddress%d", sdu_buffer_size, ctxt_pP->rnti, rb_id, sdu_buffer->pool_id, &(sdu_buffer->data));
+    LATSEQ_P("U pdcp.pdu.pull--pdcp.pdu.decoded", "len%d:rnti%d:rb_id%d.pdusession_id%d.memblck_poolid%d.bufaddress%d", sdu_buffer_size, ctxt_pP->rnti, rb_id, rb->pdusession_id, sdu_buffer->pool_id, &(sdu_buffer->data));
     rb->recv_pdu(rb, (char *)sdu_buffer->data, sdu_buffer_size);
   } else {
     LOG_E(PDCP, "%s:%d:%s: no RB found (rb_id %ld, srb_flag %d)\n",
