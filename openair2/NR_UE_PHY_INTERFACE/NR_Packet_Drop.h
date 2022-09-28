@@ -35,8 +35,7 @@
 
 typedef struct NR_UL_TIME_ALIGNMENT NR_UL_TIME_ALIGNMENT_t;
 
-typedef struct
-{
+typedef struct {
     float sinr;
     float rsrp;
     float rsrq;
@@ -47,16 +46,14 @@ typedef struct
     uint8_t area_code;
 } nr_channel_status;
 
-typedef struct nr_phy_channel_params_t
-{
+typedef struct nr_phy_channel_params_t {
     uint16_t sfn_slot;
     uint16_t message_id;
     uint16_t nb_of_csi;
     nr_channel_status csi[NR_NUM_LAYER];
 } nr_phy_channel_params_t;
 
-typedef struct
-{
+typedef struct {
     uint8_t slot;
     uint16_t rnti[MAX_NR_CHAN_PARAMS];
     uint8_t mcs[MAX_NR_CHAN_PARAMS];
@@ -68,8 +65,7 @@ typedef struct
     uint8_t area_code;
 } slot_rnti_mcs_s;
 
-typedef struct
-{
+typedef struct {
     uint16_t length;
     float bler_table[NR_NUM_SINR][NUM_BLER_COL];
 } nr_bler_struct;
