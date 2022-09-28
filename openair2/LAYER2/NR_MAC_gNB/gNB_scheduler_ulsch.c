@@ -1774,7 +1774,7 @@ void pf_ul(module_id_t module_id,
 
     nr_find_nb_rb(sched_pusch->Qm,
                   sched_pusch->R,
-                  nrOfLayers,
+                  sched_pusch->nrOfLayers,
                   sched_pusch->tda_info.nrOfSymbols,
                   sched_pusch->dmrs_info.N_PRB_DMRS * sched_pusch->dmrs_info.num_dmrs_symb,
                   B,
