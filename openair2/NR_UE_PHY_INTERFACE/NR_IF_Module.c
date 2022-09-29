@@ -714,7 +714,7 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
         {
             frame = tx_data_request->SFN;
             slot = tx_data_request->Slot;
-            LOG_I(NR_PHY, "[%d, %d] PDSCH in tx_request\n", frame, slot);
+            LOG_D(NR_PHY, "[%d, %d] PDSCH in tx_request\n", frame, slot);
             copy_tx_data_req_to_dl_info(&mac->dl_info, tx_data_request);
         }
         else
