@@ -219,7 +219,7 @@ static void reassemble_and_deliver(nr_rlc_entity_am_t *entity, int sn)
     return;
 
   /* deliver */
-  LATSEQ_P("U rlc.reassembled--rlc.sdu.push", "len%d::bufaddress%d.sn%d.so%d", so, sdu, sn, so);
+  LATSEQ_P("U rlc.reassembled--rlc.sdu.push", "len%d::bufaddress%d.sn%d", so, sdu, sn);
   entity->common.deliver_sdu(entity->common.deliver_sdu_data,
                              (nr_rlc_entity_t *)entity,
                              sdu, so);

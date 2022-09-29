@@ -582,7 +582,7 @@ uint32_t nr_ulsch_decoding(PHY_VARS_gNB *phy_vars_gNB,
     offset += (Kr_bytes - (harq_process->F>>3) - ((harq_process->C>1)?3:0));
     
     int sz=Kr_bytes - (harq_process->F>>3) - ((harq_process->C>1)?3:0);
-    LATSEQ_P("U mac.harq--mac.demux", "len%d:rnti%d:frame%d.slot%d.ulsch_id%d.ulsch_harq%d.harqpid%d.codeblocksegment%d", sz, ulsch->rnti, frame, nr_tti_rx, ULSCH_id, harq_process, harq_pid, r);
+    LATSEQ_P("U mac.harq--mac.demux", "len%d::frame%d.slot%d.ulsch_id%d.ulsch_harq%d.harqpid%d.codeblocksegment%d", sz, frame, nr_tti_rx, ULSCH_id, harq_process, harq_pid, r);
     //////////////////////////////////////////////////////////////////////////////////////////
   }
   return 1;
