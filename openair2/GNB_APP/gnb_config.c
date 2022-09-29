@@ -83,7 +83,6 @@
 
 #include "RRC/NR/MESSAGES/asn1_msg.h"
 #include "openair2/LAYER2/nr_pdcp/nr_pdcp.h"
-#include "executables/softmodem-common.h"
 
 extern uint16_t sf_ahead;
 int macrlc_has_f1 = 0;
