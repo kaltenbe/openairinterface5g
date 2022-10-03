@@ -1982,6 +1982,7 @@ void nr_rx_pusch(PHY_VARS_gNB *gNB,
   int off = 0;
 #endif
   uint32_t rxdataF_ext_offset = 0;
+  uint8_t ad_shift = 1 + log2_approx(frame_parms->nb_antennas_rx >> 2);
 
   for(uint8_t symbol = rel15_ul->start_symbol_index; symbol < (rel15_ul->start_symbol_index + rel15_ul->nr_of_symbols); symbol++) {
     uint8_t dmrs_symbol_flag = (rel15_ul->ul_dmrs_symb_pos >> symbol) & 0x01;
@@ -2049,7 +2050,7 @@ void nr_rx_pusch(PHY_VARS_gNB *gNB,
           for (aarx=0;aarx<frame_parms->nb_antennas_rx;aarx++)
             avgs = cmax(avgs,avg[aatx*frame_parms->nb_antennas_rx+aarx]);
 
-        gNB->pusch_vars[ulsch_id]->log2_maxh = (log2_approx(avgs)/2)+2;
+        gNB->pusch_vars[ulsch_id]->log2_maxh = (log2_approx(avgs) / 2) + ad_shift;
         gNB->pusch_vars[ulsch_id]->cl_done = 1;
       }
 
