@@ -1366,30 +1366,30 @@
                       -n100 -m9 -r106 -s10 -W4 -y4 -z4
                       -n100 -u0 -m0 -R25 -r25 -i 1,0
                       -n100 -m0 -S -0.6 -i 1,0
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 0,1,1,2 -z2 -s12.4 -S12.4
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 0,1,1,2 -z4 -s8.5 -S8.5
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 0,1,1,2 -z8 -s5.4 -S5.4
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 1,1,1,2 -z2 -s12.5 -S12.5
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 1,1,1,2 -z4 -s8.9 -S8.9
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 1,1,1,2 -z8 -s5.7 -S5.7
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 1,1,1,2 -z2 -s12.6 -S12.6
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 1,1,1,2 -z4 -s8.9 -S8.9
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 1,1,1,2 -z8 -s5.8 -S5.8
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 1,1,1,2 -z2 -s12.3 -S12.3
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 1,1,1,2 -z4 -s8.8 -S8.8
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 1,1,1,2 -z8 -s5.7 -S5.7
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 1,1,1,2 -z2 -s12.5 -S12.5
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 1,1,1,2 -z4 -s8.6 -S8.6
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 1,1,1,2 -z8 -s5.6 -S5.6
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 1,1,1,2 -z2 -s12.5 -S12.5
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 1,1,1,2 -z4 -s8.6 -S8.6
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 1,1,1,2 -z8 -s5.6 -S5.6
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 1,1,1,2 -z2 -s12.5 -S12.5
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 1,1,1,2 -z4 -s8.7 -S8.7
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 1,1,1,2 -z8 -s5.5 -S5.5
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 1,1,1,2 -z2 -s13.1 -S13.1
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 1,1,1,2 -z4 -s9.2 -S9.2
-                      -n500 -b14 -I15 -i 1,0 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 1,1,1,2 -z8 -s5.9 -S5.9</main_exec_args>
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 0,1,1,2 -z2 -s12.4 -S12.4
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 0,1,1,2 -z4 -s8.5 -S8.5
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 0,1,1,2 -z8 -s5.4 -S5.4
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 1,1,1,2 -z2 -s12.5 -S12.5
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 1,1,1,2 -z4 -s8.9 -S8.9
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 0 -m20 -R25 -r25 -U 1,1,1,2 -z8 -s5.7 -S5.7
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 1,1,1,2 -z2 -s12.6 -S12.6
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 1,1,1,2 -z4 -s8.9 -S8.9
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 0 -m20 -R52 -r52 -U 1,1,1,2 -z8 -s5.8 -S5.8
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 1,1,1,2 -z2 -s12.3 -S12.3
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 1,1,1,2 -z4 -s8.8 -S8.8
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 0 -m20 -R106 -r106 -U 1,1,1,2 -z8 -s5.7 -S5.7
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 1,1,1,2 -z2 -s12.5 -S12.5
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 1,1,1,2 -z4 -s8.6 -S8.6
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R24 -r24 -U 1,1,1,2 -z8 -s5.6 -S5.6
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 1,1,1,2 -z2 -s12.5 -S12.5
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 1,1,1,2 -z4 -s8.6 -S8.6
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R51 -r51 -U 1,1,1,2 -z8 -s5.6 -S5.6
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 1,1,1,2 -z2 -s12.5 -S12.5
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 1,1,1,2 -z4 -s8.7 -S8.7
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R106 -r106 -U 1,1,1,2 -z8 -s5.5 -S5.5
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 1,1,1,2 -z2 -s13.1 -S13.1
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 1,1,1,2 -z4 -s9.2 -S9.2
+                      -n500 -b14 -I15 -i 1,1 -g A,l -t70 -u 1 -m20 -R273 -r273 -U 1,1,1,2 -z8 -s5.9 -S5.9</main_exec_args>
       <tags>nr_ulsim.test1 nr_ulsim.test2 nr_ulsim.test3 nr_ulsim.test4 nr_ulsim.test5 nr_ulsim.test6 nr_ulsim.test7 nr_ulsim.test8 nr_ulsim.test9 nr_ulsim.test10 nr_ulsim.test11 nr_ulsim.test12 nr_ulsim.test13 nr_ulsim.test14 nr_ulsim.test15 nr_ulsim.test16 nr_ulsim.test17 nr_ulsim.test18 nr_ulsim.test19 nr_ulsim.test20 nr_ulsim.test21 nr_ulsim.test22 nr_ulsim.test23 nr_ulsim.test24 nr_ulsim.test25 nr_ulsim.test26 nr_ulsim.test27 nr_ulsim.test28 nr_ulsim.test29 nr_ulsim.test30 nr_ulsim.test31 nr_ulsim.test32 nr_ulsim.test33 nr_ulsim.test34 nr_ulsim.test35 nr_ulsim.test36 nr_ulsim.test37 nr_ulsim.test38 nr_ulsim.test39 nr_ulsim.test40 nr_ulsim.test41 nr_ulsim.test42 nr_ulsim.test43</tags>
       <search_expr_true>PUSCH test OK</search_expr_true>
       <search_expr_false>segmentation fault|assertion|exiting|fatal</search_expr_false>
