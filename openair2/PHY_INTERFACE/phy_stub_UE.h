@@ -128,14 +128,12 @@ void handle_nfapi_ul_pdu_UE_MAC(module_id_t Mod_id,
                          uint16_t frame,uint8_t subframe,uint8_t srs_present, int index,
                          nfapi_ul_config_request_t *ul_config_req);
 
-typedef struct sfn_sf_info_s
-{
+typedef struct sfn_sf_info_s {
     uint16_t phy_id;
     uint16_t sfn_sf;
 } sfn_sf_info_t;
 
-typedef struct
-{
+typedef struct {
     float sinr;
     float rsrp;
     float rsrq;
@@ -146,8 +144,7 @@ typedef struct
     uint8_t area_code;
 } channel_status;
 
-typedef struct phy_channel_params_t
-{
+typedef struct phy_channel_params_t {
     uint16_t sfn_sf;
     uint16_t message_id;
     uint16_t phy_id;
@@ -155,14 +152,12 @@ typedef struct phy_channel_params_t
     channel_status csi[LTE_NUM_LAYER];
 } phy_channel_params_t;
 
-typedef struct nfapi_tx_req_pdu_list_t
-{
+typedef struct nfapi_tx_req_pdu_list_t {
     int num_pdus;                  /* number .pdus[] objects */
     nfapi_tx_request_pdu_t pdus[]; /* see "struct hack" */
 } nfapi_tx_req_pdu_list_t;
 
-typedef struct nfapi_dl_config_req_tx_req_t
-{
+typedef struct nfapi_dl_config_req_tx_req_t {
     nfapi_dl_config_request_t *dl_config_req;
     nfapi_tx_req_pdu_list_t *tx_req_pdu_list;
 } nfapi_dl_config_req_tx_req_t;

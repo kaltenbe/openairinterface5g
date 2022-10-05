@@ -2040,22 +2040,18 @@ rrc_ue_process_rrcConnectionReconfiguration(
 
       if (r_r8->radioResourceConfigDedicated) {
         protocol_ctxt_t ho_ctxt = *ctxt_pP;
-        const protocol_ctxt_t *const ho_ctxt_pP = &ho_ctxt;
         if (r_r8->mobilityControlInfo) {
-          // Re-establish PDCP for all RBs that are established
-          ho_ctxt.rnti =
-              ((r_r8->mobilityControlInfo->
-                newUE_Identity.buf[1]) | (r_r8->mobilityControlInfo->
-                                          newUE_Identity.buf[0] << 8));
+          // Create a copy of the context for HO
+          ho_ctxt.rnti = r_r8->mobilityControlInfo-> newUE_Identity.buf[1] | (r_r8->mobilityControlInfo->newUE_Identity.buf[0] << 8);
           LOG_D(RRC, "source rnti = 0x%x vs  target rnti = 0x%x\n", ctxt_pP->rnti, ho_ctxt.rnti);
-          rrc_pdcp_config_req(ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH,UNDEF_SECURITY_MODE);
-          rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
-          rrc_pdcp_config_req (ho_ctxt_pP, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
-          rrc_rlc_config_req(ho_ctxt_pP, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
+          rrc_pdcp_config_req(&ho_ctxt, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH,UNDEF_SECURITY_MODE);
+          rrc_rlc_config_req(&ho_ctxt, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD,ctxt_pP->module_id+DCCH, Rlc_info_am_config);
+          rrc_pdcp_config_req (&ho_ctxt, SRB_FLAG_YES, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1,UNDEF_SECURITY_MODE);
+          rrc_rlc_config_req(&ho_ctxt, SRB_FLAG_YES, MBMS_FLAG_NO, CONFIG_ACTION_ADD, ctxt_pP->module_id+DCCH1, Rlc_info_am_config);
           rrc_pdcp_config_security(ctxt_pP, eNB_index);
         }
         LOG_I(RRC,"Radio Resource Configuration is present\n");
-        rrc_ue_process_radioResourceConfigDedicated(ho_ctxt_pP,
+        rrc_ue_process_radioResourceConfigDedicated(&ho_ctxt,
                                                     eNB_index,
                                                     r_r8->radioResourceConfigDedicated);
         r_r8->radioResourceConfigDedicated = NULL;
@@ -2166,10 +2162,7 @@ rrc_ue_process_rrcConnectionReconfiguration(
   } // critical extensions present
 }
 
-static void check_rlc_status(
-  const protocol_ctxt_t *const       ctxt_pP,
-  uint8_t lcid
-)
+static void check_rlc_status(const protocol_ctxt_t *const ctxt_pP, uint8_t lcid)
 {
   rnti_t crnti = UE_mac_inst[ctxt_pP->module_id].crnti;
   uint8_t lcgid = UE_mac_inst[ctxt_pP->module_id].scheduling_info.LCGID[lcid];
@@ -2292,7 +2285,7 @@ rrc_ue_decode_dcch(
   LTE_DL_DCCH_Message_t *dl_dcch_msg=NULL;//&dldcchmsg;
   //  asn_dec_rval_t dec_rval;
   // int i;
-  uint8_t target_eNB_index=0xFF;
+  uint8_t target_eNB_index = 0xFF;
   MessageDef *msg_p;
 
   if (Srb_id != 1) {
@@ -4598,9 +4591,7 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
               ttt_ms = timeToTrigger_ms[ue->ReportConfig[i][reportConfigId
                                         -1]->reportConfig.choice.reportConfigEUTRA.triggerType.choice.event.timeToTrigger];
               // Freq specific offset of neighbor cell freq
-              ofn = 1;//((ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq != NULL) ?
-              // *ue->MeasObj[i][measObjId-1]->measObject.choice.measObjectEUTRA.offsetFreq : 15); //  /* 15 is the Default */
-              // cellIndividualOffset of neighbor cell - not defined yet
+              ofn = 1;
               ocn = 0;
               a3_offset = ue->ReportConfig[i][reportConfigId-1]->reportConfig.choice.reportConfigEUTRA.triggerType.choice.event.eventId.choice.eventA3.a3_Offset;
 
@@ -6434,11 +6425,7 @@ int decode_SL_Discovery_Message(
   return(0);
 }
 
-void
-rrc_update_ue_status(
-  const module_id_t module_idP,
-  const uint8_t      enb_indexP
-)
+void rrc_update_ue_status(const module_id_t module_idP, const uint8_t enb_indexP)
 {
   if((UE_rrc_inst[module_idP].Info[enb_indexP].State == RRC_IDLE) &&
       (UE_rrc_inst[module_idP].HandoverInfoUe.targetCellId != 0xFF)) {

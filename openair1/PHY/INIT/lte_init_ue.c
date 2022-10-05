@@ -332,7 +332,7 @@ void phy_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_
 /*
  * Configures UE MAC and PHY with radioResourceCommon received in mobilityControlInfo IE during Handover
  */
-void emulate_phy_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_MobilityControlInfo_t *mobilityControlInfo, uint8_t ho_failed) {
+void emulate_phy_config_afterHO_ue(module_id_t Mod_id,uint8_t CC_id,uint8_t eNB_id, LTE_MobilityControlInfo_t *mobilityControlInfo, bool ho_failed) {
   if (mobilityControlInfo != NULL) {
     LTE_RadioResourceConfigCommon_t *radioResourceConfigCommon = &mobilityControlInfo->radioResourceConfigCommon;
     LOG_I(PHY,"radioResourceConfigCommon %p\n", radioResourceConfigCommon);
