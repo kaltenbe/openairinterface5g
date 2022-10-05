@@ -1641,6 +1641,7 @@ int random_channel(channel_desc_t *desc, uint8_t abstraction_flag) {
     for (l = 0; l < desc->nb_taps; l++) {
       amps_tot += sqrt(desc->ricean_factor * desc->amps[l]);
     }
+    normalization_factor = 0.0;
     for (k = 0; k < (int)desc->channel_length; k++) {
       double sum_s = 0.0;
       for (l = 0; l < desc->nb_taps; l++) {
