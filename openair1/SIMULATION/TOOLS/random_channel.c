@@ -1635,10 +1635,8 @@ int random_channel(channel_desc_t *desc, uint8_t abstraction_flag) {
   bzero(acorr,desc->nb_tx*desc->nb_rx*sizeof(struct complexd));
 
   // Compute normalization factor
-  double normalization_factor = 0.0;
-  if (desc->channel_length == 1) {
-    normalization_factor = 1.0;
-  } else {
+  double normalization_factor = 1.0;
+  if (desc->channel_length > 1 && desc->modelid >= TDL_A && desc->modelid <= TDL_E) {
     double amps_tot = 0.0;
     for (l = 0; l < desc->nb_taps; l++) {
       amps_tot += sqrt(desc->ricean_factor * desc->amps[l]);
