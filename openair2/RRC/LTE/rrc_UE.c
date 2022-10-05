@@ -2285,7 +2285,7 @@ rrc_ue_decode_dcch(
   LTE_DL_DCCH_Message_t *dl_dcch_msg=NULL;//&dldcchmsg;
   //  asn_dec_rval_t dec_rval;
   // int i;
-  uint8_t target_eNB_index = 0xFF;
+  uint8_t target_eNB_index=0xFF;
   MessageDef *msg_p;
 
   if (Srb_id != 1) {
@@ -2520,7 +2520,7 @@ rrc_ue_decode_dcch(
           }
 
           UE_RRC_INFO *info = &UE_rrc_inst[ctxt_pP->module_id].Info[eNB_indexP];
-          if ((info->dl_dcch_msg != NULL) && (target_eNB_index == 0xFF)) {
+          if (info->dl_dcch_msg != NULL) {
               SEQUENCE_free(&asn_DEF_LTE_DL_DCCH_Message, info->dl_dcch_msg, ASFM_FREE_EVERYTHING);
           }
           info->dl_dcch_msg = dl_dcch_msg;
@@ -4590,7 +4590,9 @@ void ue_measurement_report_triggering(protocol_ctxt_t *const ctxt_pP, const uint
               hys = ue->ReportConfig[i][reportConfigId-1]->reportConfig.choice.reportConfigEUTRA.triggerType.choice.event.hysteresis;
               ttt_ms = timeToTrigger_ms[ue->ReportConfig[i][reportConfigId
                                         -1]->reportConfig.choice.reportConfigEUTRA.triggerType.choice.event.timeToTrigger];
-              // Freq specific offset of neighbor cell freq
+              /* Freq specific offset of neighbor cell freq. Ofn represents represents a sort of
+                 sensitivity to eNB<->UE<->eNB location. By changing this value (lowering from 5 -> 1),
+                 we can accurately model LTE HO when UE is closer to the target eNB vs. the source eNB. */
               ofn = 1;
               ocn = 0;
               a3_offset = ue->ReportConfig[i][reportConfigId-1]->reportConfig.choice.reportConfigEUTRA.triggerType.choice.event.eventId.choice.eventA3.a3_Offset;
