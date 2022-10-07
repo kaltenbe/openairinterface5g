@@ -121,8 +121,9 @@ void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx,
   PHY_VARS_gNB *gNB = msgTx->gNB;
   NR_DL_FRAME_PARMS *fp=&gNB->frame_parms;
   nfapi_nr_config_request_scf_t *cfg = &gNB->gNB_config;
-  int offset = gNB->CC_id;
+  int offset = gNB->CC_id, slot_prs;
   int txdataF_offset = slot*fp->samples_per_slot_wCP;
+  prs_config_t *prs_config = NULL;
 
   if ((cfg->cell_config.frame_duplex_type.value == TDD) &&
       (nr_slot_select(cfg,frame,slot) == NR_UPLINK_SLOT)) return;
@@ -133,6 +134,21 @@ void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx,
   for (aa=0; aa<cfg->carrier_config.num_tx_ant.value; aa++) {
     memset(&gNB->common_vars.txdataF[aa][txdataF_offset],0,fp->samples_per_slot_wCP*sizeof(int32_t));
     memset(&gNB->common_vars.beam_id[aa][slot*fp->symbols_per_slot],255,fp->symbols_per_slot*sizeof(uint8_t));
+  }
+
+  // Check for PRS slot - section 7.4.1.7.4 in 3GPP rel16 38.211
+  for(int rsc_id = 0; rsc_id < gNB->prs_vars.NumPRSResources; rsc_id++)
+  {
+    prs_config = &gNB->prs_vars.prs_cfg[rsc_id];
+    for (int i = 0; i < prs_config->PRSResourceRepetition; i++)
+    {
+      if( (((frame*fp->slots_per_frame + slot) - (prs_config->PRSResourceSetPeriod[1] + prs_config->PRSResourceOffset)+prs_config->PRSResourceSetPeriod[0])%prs_config->PRSResourceSetPeriod[0]) == i*prs_config->PRSResourceTimeGap )
+      {
+        slot_prs = (slot - i*prs_config->PRSResourceTimeGap + fp->slots_per_frame)%fp->slots_per_frame;
+        LOG_D(PHY,"gNB_TX: frame %d, slot %d, slot_prs %d, PRS Resource ID %d\n",frame, slot, slot_prs, rsc_id);
+        nr_generate_prs(gNB->nr_gold_prs[rsc_id][slot_prs],&gNB->common_vars.txdataF[0][txdataF_offset], AMP, prs_config, cfg, fp);
+      }
+    }
   }
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_COMMON_TX,1);
@@ -182,6 +198,10 @@ void phy_procedures_gNB_TX(processingData_L1tx_t *msgTx,
   //apply the OFDM symbol rotation here
   for (aa=0; aa<cfg->carrier_config.num_tx_ant.value; aa++) {
     apply_nr_rotation(fp,(int16_t*) &gNB->common_vars.txdataF[aa][txdataF_offset],slot,0,fp->Ncp==EXTENDED?12:14);
+
+    T(T_GNB_PHY_DL_OUTPUT_SIGNAL, T_INT(0),
+      T_INT(frame), T_INT(slot),
+      T_INT(aa), T_BUFFER(&gNB->common_vars.txdataF[aa][txdataF_offset], fp->samples_per_slot_wCP*sizeof(int32_t)));
   }
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_PROCEDURES_gNB_TX+offset,0);
@@ -248,11 +268,7 @@ void nr_postDecode(PHY_VARS_gNB *gNB, notifiedFIFO_elt_t *req) {
     }
 /*
     if (ulsch_harq->ulsch_pdu.mcs_index == 0 && dumpsig==1) {
-#ifdef __AVX2__
       int off = ((ulsch_harq->ulsch_pdu.rb_size&1) == 1)? 4:0;
-#else
-      int off = 0;
-#endif
 
       LOG_M("rxsigF0.m","rxsF0",&gNB->common_vars.rxdataF[0][(ulsch_harq->slot&3)*gNB->frame_parms.ofdm_symbol_size*gNB->frame_parms.symbols_per_slot],gNB->frame_parms.ofdm_symbol_size*gNB->frame_parms.symbols_per_slot,1,1);
       LOG_M("rxsigF0_ext.m","rxsF0_ext",
@@ -422,11 +438,8 @@ void nr_fill_indication(PHY_VARS_gNB *gNB, int frame, int slot_rx, int ULSCH_id,
 
   if (0/*pusch_pdu->mcs_index == 9*/) {
       __attribute__((unused))
-#ifdef __AVX2__
       int off = ((pusch_pdu->rb_size&1) == 1)? 4:0;
-#else
-      int off = 0;
-#endif
+
       LOG_M("rxsigF0.m","rxsF0",&gNB->common_vars.rxdataF[0][(slot_rx&3)*gNB->frame_parms.ofdm_symbol_size*gNB->frame_parms.symbols_per_slot],gNB->frame_parms.ofdm_symbol_size*gNB->frame_parms.symbols_per_slot,1,1);
       LOG_M("rxsigF0_ext.m","rxsF0_ext",
              &gNB->pusch_vars[0]->rxdataF_ext[0][pusch_pdu->start_symbol_index*NR_NB_SC_PER_RB * pusch_pdu->rb_size],pusch_pdu->nr_of_symbols*(off+(NR_NB_SC_PER_RB * pusch_pdu->rb_size)),1,1);

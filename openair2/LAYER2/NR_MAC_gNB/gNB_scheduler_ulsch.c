@@ -721,8 +721,6 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
           // the function is only called to decode the contention resolution sub-header
           if (nr_process_mac_pdu(gnb_mod_idP, UE, CC_idP, frameP, slotP, sduP, sdu_lenP, -1) == 0) {
             ra->state = Msg4;
-            ra->Msg4_frame = (frameP + 2) % 1024;
-            ra->Msg4_slot = 1;
             
             if (ra->msg3_dcch_dtch) {
               // Check if the UE identified by C-RNTI still exists at the gNB
@@ -743,8 +741,8 @@ void nr_rx_sdu(const module_id_t gnb_mod_idP,
                 reset_ul_harq_list(&UE_C->UE_sched_ctrl);
               }
             }
-            LOG_I(NR_MAC, "Scheduling RA-Msg4 for TC_RNTI 0x%04x (state %d, frame %d, slot %d)\n",
-                  (ra->msg3_dcch_dtch?ra->crnti:ra->rnti), ra->state, ra->Msg4_frame, ra->Msg4_slot);
+            LOG_I(NR_MAC, "Activating scheduling RA-Msg4 for TC_RNTI 0x%04x (state %d)\n",
+                  (ra->msg3_dcch_dtch?ra->crnti:ra->rnti), ra->state);
           }
           else {
              nr_mac_remove_ra_rnti(gnb_mod_idP, ra->rnti);
@@ -2073,17 +2071,18 @@ void nr_schedule_ulsch(module_id_t module_id, frame_t frame, sub_frame_t slot)
 
     /* PUSCH in a later slot, but corresponding DCI now! */
     nfapi_nr_ul_tti_request_t *future_ul_tti_req = &RC.nrmac[module_id]->UL_tti_req_ahead[0][sched_pusch->slot];
-    AssertFatal(future_ul_tti_req->SFN == sched_pusch->frame
-                && future_ul_tti_req->Slot == sched_pusch->slot,
-                "%d.%d future UL_tti_req's frame.slot %d.%d does not match PUSCH %d.%d\n",
-                frame, slot,
-                future_ul_tti_req->SFN,
-                future_ul_tti_req->Slot,
-                sched_pusch->frame,
-                sched_pusch->slot);
+    if (future_ul_tti_req->SFN != sched_pusch->frame || future_ul_tti_req->Slot != sched_pusch->slot)
+      LOG_W(MAC,
+            "%d.%d future UL_tti_req's frame.slot %d.%d does not match PUSCH %d.%d\n",
+            frame, slot,
+            future_ul_tti_req->SFN,
+            future_ul_tti_req->Slot,
+            sched_pusch->frame,
+            sched_pusch->slot);
     AssertFatal(future_ul_tti_req->n_pdus <
                 sizeof(future_ul_tti_req->pdus_list) / sizeof(future_ul_tti_req->pdus_list[0]),
                 "Invalid future_ul_tti_req->n_pdus %d\n", future_ul_tti_req->n_pdus);
+
     future_ul_tti_req->pdus_list[future_ul_tti_req->n_pdus].pdu_type = NFAPI_NR_UL_CONFIG_PUSCH_PDU_TYPE;
     future_ul_tti_req->pdus_list[future_ul_tti_req->n_pdus].pdu_size = sizeof(nfapi_nr_pusch_pdu_t);
     nfapi_nr_pusch_pdu_t *pusch_pdu = &future_ul_tti_req->pdus_list[future_ul_tti_req->n_pdus].pusch_pdu;
