@@ -535,9 +535,6 @@ function main() {
     echo_info "Erased all previously producted files"
   fi
 
-  dlog=$OPENAIR_DIR/cmake_targets/log
-  mkdir -p $dlog
-
   if [ "$INSTALL_EXTERNAL" = "1" ] ; then
     echo_info "Installing packages"
     check_install_oai_software
@@ -604,6 +601,8 @@ function main() {
   echo_info "3. building the compilation directives ..."
 
   DIR=$OPENAIR_DIR/cmake_targets
+  dlog=$DIR/log
+  mkdir -p $dlog
 
   [ "$CLEAN" = "1" ] && rm -rf $DIR/$BUILD_DIR/build
   mkdir -p $DIR/$BUILD_DIR/build
