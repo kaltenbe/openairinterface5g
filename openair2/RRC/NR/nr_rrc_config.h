@@ -151,6 +151,7 @@ void config_srs(NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
                 const int uid,
                 const int res_id,
                 const int do_srs);
+struct NR_SetupRelease_PDSCH_Config *config_pdsch(uint64_t ssb_bitmap, int bwp_Id, int dl_antenna_ports);
 void set_dl_mcs_table(int scs,
                       NR_UE_NR_Capability_t *cap,
                       NR_BWP_DownlinkDedicated_t *bwp_Dedicated,
