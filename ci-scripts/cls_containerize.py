@@ -747,13 +747,13 @@ class Containerize():
 		forceDown = False
 		if svcName == '':
 			forceDown = True
-			mySSH.command(f'docker-compose -f ci-docker-compose.yml config', '\$', 5)
+			mySSH.command(f'docker-compose -f ci-docker-compose.yml config --services', '\$', 5)
 			possibleServices = mySSH.getBefore().split('\n')
 			# collect services that exist and are not stopped yet
 			for s in possibleServices:
-				mySSH.command(f'docker-compose -f ci-docker-compose.yml ps "{s}"', '\$', 5)
+				mySSH.command(f'docker-compose -f ci-docker-compose.yml ps "{s.strip()}"', '\$', 5)
 				if mySSH.getBefore().count('Exit') != 0 and mySSH.getBefore().count('No such service') != 0:
-					svcName += f' {s}'
+					svcName += f' {s.strip()}'
 			logging.warning(f'no service name given: stopping services {svcName} in ci-docker-compose.yml!')
 
 		if svcName != '':
