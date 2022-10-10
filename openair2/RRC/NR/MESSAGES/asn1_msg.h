@@ -192,7 +192,7 @@ uint8_t do_RRCReestablishment(const protocol_ctxt_t *const ctxt_pP,
                               size_t buffer_size,
                               const uint8_t Transaction_id,
                               NR_SRB_ToAddModList_t **SRB_configList,
-                              OCTET_STRING_t *masterCellGroup_from_DU,
+                              const uint8_t *masterCellGroup_from_DU,
                               NR_ServingCellConfigCommon_t *scc,
                               rrc_gNB_carrier_data_t *carrier);
 

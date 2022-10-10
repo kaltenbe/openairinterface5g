@@ -2311,7 +2311,7 @@ void configure_UE_BWP(gNB_MAC_INST *nr_mac,
   }
   else {
     DL_BWP->bwp_id = 0;
-    DL_BWP->bwp_id = 0;
+    UL_BWP->bwp_id = 0;
     target_ss = NR_SearchSpace__searchSpaceType_PR_common;
     DL_BWP->pdsch_Config = NULL;
     UL_BWP->pusch_Config = NULL;

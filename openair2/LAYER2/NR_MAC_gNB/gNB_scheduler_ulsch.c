@@ -1523,11 +1523,11 @@ void pf_ul(module_id_t module_id,
   int curUE=0;
 
   /* Loop UE_list to calculate throughput and coeff */
-  UE_iterator(UE_list, UE) {
-
+  UE_iterator(UE_list, UE)
+  {
     NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
 
-    if ((UE->Msg4_ACKed != true) || (sched_ctrl->ul_failure==1 && get_softmodem_params()->phy_test==0)) {
+    if ((UE->Msg4_ACKed != true) || (sched_ctrl->ul_failure == 1 && get_softmodem_params()->phy_test == 0)) {
       continue;
     }
 

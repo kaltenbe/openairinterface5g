@@ -485,8 +485,9 @@ rrc_gNB_generate_RRCSetup_for_RRCReestablishmentRequest(
   ue_context_pP->ue_context.ue_release_timer = 1;
   // remove UE after 10 frames after RRCConnectionRelease is triggered
   ue_context_pP->ue_context.ue_release_timer_thres = 1000;
-  /* init timers */
-  //   ue_context_pP->ue_context.ue_rrc_inactivity_timer = 0;
+  // configure MAC
+  apply_macrlc_config(rrc_instance_p,ue_context_pP,ctxt_pP);
+  apply_pdcp_config(ue_context_pP,ctxt_pP);
 }
 
 void
@@ -1358,7 +1359,22 @@ rrc_gNB_process_RRCReconfigurationComplete(
                         &kRRCint);
   /* Refresh SRBs/DRBs */
 
-  LOG_D(NR_RRC,"Configuring PDCP DRBs/SRBs for UE %x\n",ue_context_pP->ue_context.rnti);
+  LOG_D(NR_RRC,"Configuring PDCP DRBs/SRBs for UE %04x\n",ue_context_pP->ue_context.rnti);
+
+  rnti_t reestablish_rnti = 0;
+  if (DRB_configList && DRB_configList->list.array[0]->reestablishPDCP && *DRB_configList->list.array[0]->reestablishPDCP == NR_DRB_ToAddMod__reestablishPDCP_true) {
+    for (int i = 0; i < MAX_MOBILES_PER_ENB; i++) {
+      if (reestablish_rnti_map[i][0] == ctxt_pP->rnti) {
+        reestablish_rnti = reestablish_rnti_map[i][1];
+        LOG_D(NR_RRC, "reestablish_rnti_map[%d] new %04x, old %04x\n", i, reestablish_rnti_map[i][0], reestablish_rnti_map[i][1]);
+
+        // clear current C-RNTI from map
+        reestablish_rnti_map[i][0] = 0;
+        reestablish_rnti_map[i][1] = 0;
+        break;
+      }
+    }
+  }
 
   nr_rrc_pdcp_config_asn1_req(ctxt_pP,
                               SRB_configList, // NULL,
@@ -1484,22 +1500,20 @@ rrc_gNB_process_RRCReconfigurationComplete(
 }
 
 //-----------------------------------------------------------------------------
-void
-rrc_gNB_generate_RRCReestablishment(
-  const protocol_ctxt_t *const ctxt_pP,
-  rrc_gNB_ue_context_t  *const ue_context_pP,
-  OCTET_STRING_t               *masterCellGroup_from_DU,
-  NR_ServingCellConfigCommon_t *scc,
-  const int             CC_id)
+void rrc_gNB_generate_RRCReestablishment(const protocol_ctxt_t *const ctxt_pP,
+                                         rrc_gNB_ue_context_t *const ue_context_pP,
+                                         const uint8_t *masterCellGroup_from_DU,
+                                         NR_ServingCellConfigCommon_t *scc,
+                                         const int CC_id)
 //-----------------------------------------------------------------------------
 {
-  NR_SRB_ToAddModList_t      **SRB_configList;
-  gNB_RRC_UE_t               *ue_context = NULL;
-  module_id_t                module_id = ctxt_pP->module_id;
-  uint8_t                    buffer[RRC_BUF_SIZE];
-  uint16_t                   size  = 0;
-  gNB_RRC_INST               *rrc = RC.nrrrc[ctxt_pP->module_id];
-  int enable_ciphering=0;
+  NR_SRB_ToAddModList_t **SRB_configList;
+  gNB_RRC_UE_t *ue_context = NULL;
+  module_id_t module_id = ctxt_pP->module_id;
+  uint8_t buffer[RRC_BUF_SIZE];
+  uint16_t size = 0;
+  gNB_RRC_INST *rrc = RC.nrrrc[ctxt_pP->module_id];
+  int enable_ciphering = 0;
 
   // Need to drop spCellConfig when there is a RRCReestablishment
   // Save spCellConfig in spCellConfigReestablishment to recover after Reestablishment is completed
@@ -1507,18 +1521,9 @@ rrc_gNB_generate_RRCReestablishment(
   ue_context_pP->ue_context.masterCellGroup->spCellConfig = NULL;
 
   SRB_configList = &(ue_context_pP->ue_context.SRB_configList);
-  //carrier = &(RC.nrrrc[ctxt_pP->module_id]->carrier);
+  // carrier = &(RC.nrrrc[ctxt_pP->module_id]->carrier);
   ue_context = &(ue_context_pP->ue_context);
-  size = do_RRCReestablishment(ctxt_pP,
-                               ue_context_pP,
-                               CC_id,
-                               buffer,
-                               RRC_BUF_SIZE,
-                               rrc_gNB_get_next_transaction_identifier(module_id),
-                               SRB_configList,
-                               masterCellGroup_from_DU,
-                               scc,
-                               &rrc->carrier);
+  size = do_RRCReestablishment(ctxt_pP, ue_context_pP, CC_id, buffer, RRC_BUF_SIZE, rrc_gNB_get_next_transaction_identifier(module_id), SRB_configList, masterCellGroup_from_DU, scc, &rrc->carrier);
 
   /* Configure SRB1 for UE */
   if (*SRB_configList != NULL) {
@@ -1527,29 +1532,87 @@ rrc_gNB_generate_RRCReestablishment(
         // SRB1_config = (*SRB_configList)->list.array[cnt];
       }
 
-      LOG_D(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT" RRC_gNB --- MAC_CONFIG_REQ  (SRB1) ---> MAC_gNB\n",
-            PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP));
+      LOG_D(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT " RRC_gNB --- MAC_CONFIG_REQ  (SRB1) ---> MAC_gNB\n", PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP));
 
       // rrc_mac_config_req_eNB
     }
-  }  // if (*SRB_configList != NULL)
+  } // if (*SRB_configList != NULL)
 
-  LOG_I(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT" [RAPROC] Logical Channel DL-DCCH, Generating NR_RRCReestablishment (bytes %d)\n",
-        PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP), size);
-#if(0)
-    /* TODO : It may be needed if gNB goes into full stack working. */
-    UE = find_nr_UE(module_id, rnti);
-    if (UE_id != -1) {
-      /* Activate reject timer, if RRCComplete not received after 10 frames, reject UE */
-      RC.nrmac[module_id]->UE_info.UE_sched_ctrl[UE_id].ue_reestablishment_reject_timer = 1;
-      /* Reject UE after 10 frames, LTE_RRCConnectionReestablishmentReject is triggered */
-      RC.nrmac[module_id]->UE_info.UE_sched_ctrl[UE_id].ue_reestablishment_reject_timer_thres = 100;
-    } else {
-      LOG_E(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT" Generating NR_RRCReestablishment without UE_id(MAC) rnti %x\n",
-            PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP),
-            rnti);
-    }
+  LOG_I(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT " [RAPROC] Logical Channel DL-DCCH, Generating NR_RRCReestablishment (bytes %d)\n", PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP), size);
+#if (0)
+  /* TODO : It may be needed if gNB goes into full stack working. */
+  UE = find_nr_UE(module_id, rnti);
+  if (UE_id != -1) {
+    /* Activate reject timer, if RRCComplete not received after 10 frames, reject UE */
+    RC.nrmac[module_id]->UE_info.UE_sched_ctrl[UE_id].ue_reestablishment_reject_timer = 1;
+    /* Reject UE after 10 frames, LTE_RRCConnectionReestablishmentReject is triggered */
+    RC.nrmac[module_id]->UE_info.UE_sched_ctrl[UE_id].ue_reestablishment_reject_timer_thres = 100;
+  } else {
+    LOG_E(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT " Generating NR_RRCReestablishment without UE_id(MAC) rnti %x\n", PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP), rnti);
+  }
 #endif
+
+  uint8_t *kRRCenc = NULL;
+  uint8_t *kRRCint = NULL;
+  uint8_t *kUPenc = NULL;
+  /* Derive the keys from kgnb */
+  if (SRB_configList != NULL) {
+    nr_derive_key_up_enc(ue_context_pP->ue_context.ciphering_algorithm, ue_context_pP->ue_context.kgnb, &kUPenc);
+  }
+
+  nr_derive_key_rrc_enc(ue_context_pP->ue_context.ciphering_algorithm, ue_context_pP->ue_context.kgnb, &kRRCenc);
+  nr_derive_key_rrc_int(ue_context_pP->ue_context.integrity_algorithm, ue_context_pP->ue_context.kgnb, &kRRCint);
+
+  nr_rrc_pdcp_config_asn1_req(ctxt_pP,
+                              ue_context_pP->ue_context.SRB_configList,
+                              NULL,
+                              NULL,
+                              0,
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL,
+                              get_softmodem_params()->sa ? ue_context_pP->ue_context.masterCellGroup->rlc_BearerToAddModList : NULL,
+                              0);
+  LOG_I(NR_RRC, "Set pdcp security rnti %x nca %ld nia %d in Reestablishment\n", ue_context->rnti, ue_context_pP->ue_context.ciphering_algorithm, ue_context_pP->ue_context.integrity_algorithm);
+  pdcp_config_set_security(
+      ctxt_pP,
+      NULL, /* pdcp_pP not used anymore in NR */
+      DCCH,
+      DCCH + 2,
+      enable_ciphering ? ue_context_pP->ue_context.ciphering_algorithm | (ue_context_pP->ue_context.integrity_algorithm << 4) : 0 | (ue_context_pP->ue_context.integrity_algorithm << 4),
+      kRRCenc,
+      kRRCint,
+      kUPenc);
+  if (!NODE_IS_CU(rrc->node_type)) {
+    apply_macrlc_config_reest(rrc, ue_context_pP, ctxt_pP, ctxt_pP->rnti);
+  }
+  nr_rrc_data_req(ctxt_pP, DCCH, rrc_gNB_mui++, SDU_CONFIRM_NO, size, buffer, PDCP_TRANSMISSION_MODE_CONTROL);
+
+  if (NODE_IS_DU(rrc->node_type) || NODE_IS_MONOLITHIC(rrc->node_type)) {
+    gNB_RRC_UE_t *ue_p = &ue_context_pP->ue_context;
+    rrc_mac_config_req_gNB(rrc->module_id,
+                           rrc->configuration.pdsch_AntennaPorts,
+                           rrc->configuration.pusch_AntennaPorts,
+                           rrc->configuration.sib1_tda,
+                           rrc->configuration.minRXTXTIME,
+                           NULL,
+                           NULL,
+                           NULL,
+                           0,
+                           ue_p->rnti,
+                           ue_p->masterCellGroup);
+
+    uint32_t delay_ms = ue_context_pP->ue_context.masterCellGroup && ue_context_pP->ue_context.masterCellGroup->spCellConfig
+                                && ue_context_pP->ue_context.masterCellGroup->spCellConfig->spCellConfigDedicated
+                                && ue_context_pP->ue_context.masterCellGroup->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList
+                            ? NR_RRC_RECONFIGURATION_DELAY_MS + NR_RRC_BWP_SWITCHING_DELAY_MS
+                            : NR_RRC_RECONFIGURATION_DELAY_MS;
+
+    nr_mac_enable_ue_rrc_processing_timer(ctxt_pP->module_id, ue_context_pP->ue_context.rnti, *rrc->carrier.servingcellconfigcommon->ssbSubcarrierSpacing, delay_ms);
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -1808,6 +1871,19 @@ rrc_gNB_process_RRCReestablishmentComplete(
     LOG_D(NR_RRC,
           "[FRAME %05d][RRC_gNB][MOD %u][][--- PDCP_DATA_REQ/%d Bytes (RRCReconfiguration to UE %04x MUI %d) --->][PDCP][MOD %u][RB %u]\n",
           ctxt_pP->frame, ctxt_pP->module_id, size, ue_context_pP->ue_context.rnti, rrc_gNB_mui, ctxt_pP->module_id, DCCH);
+
+    gNB_RrcConfigurationReq *configuration = &RC.nrrrc[ctxt_pP->module_id]->configuration;
+    rrc_mac_config_req_gNB(ctxt_pP->module_id,
+                           configuration->pdsch_AntennaPorts,
+                           configuration->pusch_AntennaPorts,
+                           configuration->sib1_tda,
+                           configuration->minRXTXTIME,
+                           NULL,
+                           NULL,
+                           NULL,
+                           0,
+                           ue_context_pP->ue_context.rnti,
+                           cellGroupConfig);
     nr_rrc_data_req(
       ctxt_pP,
       DCCH,
@@ -2229,7 +2305,11 @@ int nr_rrc_gNB_decode_ccch(protocol_ctxt_t    *const ctxt_pP,
                 &DCCH_LCHAN_DESC,
                 LCHAN_DESC_SIZE);
 
-          rrc_gNB_generate_RRCReestablishment(ctxt_pP, ue_context_p, 0);
+          rrc_gNB_generate_RRCReestablishment(ctxt_pP,
+                                              ue_context_p,
+                                              du_to_cu_rrc_container,
+                                              gnb_rrc_inst->carrier.servingcellconfigcommon,
+                                              0);
 
           LOG_I(NR_RRC, PROTOCOL_NR_RRC_CTXT_UE_FMT"CALLING RLC CONFIG SRB1 (rbid %d)\n",
                 PROTOCOL_NR_RRC_CTXT_UE_ARGS(ctxt_pP),
