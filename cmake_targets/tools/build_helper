@@ -864,7 +864,6 @@ check_install_oai_software() {
       mariadb-devel \
       lksctp-tools \
       lksctp-tools-devel \
-      openssl-devel \
       libtasn1 \
       libtool \
       libusb-devel \
@@ -876,6 +875,7 @@ check_install_oai_software() {
       openssh-clients \
       openssh-server \
       openssl \
+      openssl-devel \
       patch \
       psmisc \
       python \
