@@ -114,6 +114,8 @@ typedef struct {
      int   llr_ythresh;                       // llrview llr threshold
      int   llrxmin;                           //llr view x limits
      int   llrxmax;
+     uint64_t num_sent;
+     uint64_t num_ack;
 } websrv_scope_params_t;
 
 /*------------------------------------------------------------------------------------------------*/

@@ -49,7 +49,7 @@
 
 static websrv_scope_params_t scope_params = {0,1000,NULL,NULL,65535};
 static websrv_params_t *websrvparams_ptr;
-static int cansend=1;
+
 void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
 /* 
 
@@ -58,11 +58,11 @@ void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
     msg->data_xy[(2*i)+1]= (i>(n/4))? 10 : -10; 
   }*/
   msg->header.src=WEBSOCK_SRC_SCOPE ;
-  if (cansend || !(scope_params.statusmask & SCOPE_STATUSMASK_DATAACK)) {
+  if (((scope_params.num_sent-scope_params.num_ack)<200) || !(scope_params.statusmask & SCOPE_STATUSMASK_DATAACK)) {
     int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(numd*dsize)+WEBSOCK_HEADSIZE, (char *)msg);
     if (st != U_OK)
       LOG_I(UTIL, "Error sending scope IQs, status %i\n",st);
-    cansend=0; 
+    scope_params.num_sent++; 
   }  
 };
 
@@ -82,7 +82,7 @@ void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct
       }	    
       break;
     case SCOPEMSG_TYPE_DATAACK:
-      cansend=1;
+      scope_params.num_ack++;
       break;      
     default:
       LOG_W(UTIL,"[websrv] Unprocessed scope message type: %c /n",msg_type);
@@ -122,7 +122,9 @@ void websrv_scope_stop(void) {
 		   websrv_free_xyplot(sp->graph[i].graph);
 	   }
 	 free(sp);
-	 scope_params.scopeform=NULL;    	 	
+	 scope_params.scopeform=NULL; 
+	 scope_params.num_ack=0;
+	 scope_params.num_sent=0;  	 	
 }
 
 char *websrv_scope_initdata(void) {
@@ -264,7 +266,12 @@ int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u
 	      strcpy(gtype,"WF");	  
           agraph=json_pack("{s:s,s:s,s:i,s:i,s:i,s:i}","title",sp->graph[i].graph->label,"type",gtype,
                            "id", sp->graph[i].datasetid,"srvidx",i,"w", sp->graph[i].w,"h",sp->graph[i].h);
-          break;                   
+          break;  
+		case SCOPEMSG_DATAID_TRESP:
+	      strcpy(gtype,"TRESP");	  
+          agraph=json_pack("{s:s,s:s,s:i,s:i,s:i,s:i}","title",sp->graph[i].graph->label,"type",gtype,
+                           "id", sp->graph[i].datasetid,"srvidx",i,"w", sp->graph[i].w,"h",sp->graph[i].h);
+          break;                             
         default:
           break;       
       }

@@ -300,8 +300,6 @@ static void oai_xygraph_getbuff(OAIgraph_t *graph, float  **x, float **y, int le
 static void oai_xygraph(OAIgraph_t *graph, float *x, float *y, int len, int layer, bool NoAutoScale) {
 	
 #ifdef WEBSRVSCOPE
-//      wsc.sigid=;
-//      snprintf(wsc.graphtitle,sizeof(wsc.graphtitle),graph->text->label); 
   websrv_scopedata_msg_t *msg=NULL;
   
       websrv_nf_getdata(graph->graph, layer, &msg); 
@@ -405,15 +403,31 @@ static void genericWaterFall (OAIgraph_t *graph, scopeSample_t *values, const in
 }
 
 static void genericPowerPerAntena(OAIgraph_t  *graph, const int nb_ant, const scopeSample_t **data, const int len) {
-  float *values, *time;
+
+#ifndef WEBSRVSCOPE
+  float *values, *time;  
   oai_xygraph_getbuff(graph, &time, &values, len, 0);
+#else
+   websrv_scopedata_msg_t *msg=NULL;
+   websrv_nf_getdata(graph->graph, 0, &msg);
+   float *values=(float *)msg->data_xy;
+#endif
 
   for (int ant=0; ant<nb_ant; ant++) {
     if (data[ant] != NULL) {
       for (int i=0; i<len; i++) {
         values[i] = SquaredNorm(data[ant][i]);
       }
+#ifndef WEBSRVSCOPE  
       oai_xygraph(graph,time,values, len, ant, 10);
+#else
+      msg->header.msgtype=SCOPEMSG_TYPE_DATA ;
+      msg->header.chartid=graph->chartid;
+      msg->header.datasetid=graph->datasetid;
+      msg->header.msgseg=0;
+      msg->header.update= (ant==(nb_ant-1)) ?1:0;  
+      websrv_scope_senddata(len,4, msg);
+#endif
     }
   }
 }
@@ -441,8 +455,15 @@ static void timeSignal (OAIgraph_t *graph, PHY_VARS_gNB *phy_vars_gnb, RU_t *phy
 
 static void timeResponse (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
   const int len=2*p->gNB->frame_parms.ofdm_symbol_size;
+#ifndef WEBSRVSCOPE  
   float *values, *time;
   oai_xygraph_getbuff(graph, &time, &values, len, 0);
+#else
+   websrv_scopedata_msg_t *msg=NULL;
+   websrv_nf_getdata(graph->graph, 0, &msg);
+   float *values=(float *)msg->data_xy;
+#endif
+  
   const int ant=0; // display antenna 0 for each UE
 
   for (int ue=0; ue<nb_UEs; ue++) {
@@ -453,10 +474,19 @@ static void timeResponse (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
 
       if (data != NULL) {
         for (int i=0; i<len; i++) {
+			
           values[i] = SquaredNorm(data[i]);
         }
-
+#ifndef WEBSRVSCOPE 
         oai_xygraph(graph,time,values, len, ue, 10);
+#else
+        msg->header.msgtype=SCOPEMSG_TYPE_DATA ;
+        msg->header.chartid=graph->chartid;
+        msg->header.datasetid=graph->datasetid;
+        msg->header.msgseg=0;
+        msg->header.update=1;  
+        websrv_scope_senddata(len,4, msg);
+#endif        
       }
     }
   }
@@ -594,6 +624,7 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_gnb(void) {
                                    "SRS Frequency Response (samples, abs)", FL_RED );
   fl_get_object_bbox(fdui->graph[1].graph,&x, &y,&w, &h);
   curY+=h;
+  fdui->graph[1].chartid=SCOPEMSG_DATAID_TRESP;
   // Frequency-domain channel response
   fdui->graph[2] = gNBcommonGraph( gNBfreqWaterFall, WATERFALL, 0, curY, 800, 100,
                                    "Channel Frequency domain (RE, one frame)", FL_RED );
@@ -988,6 +1019,7 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_nrue( int ID ) {
   // Time-domain channel response
   fdui->graph[1] = nrUEcommonGraph(ueChannelResponse,
                                    FL_NORMAL_XYPLOT, 400, curY, 400, 100, "Channel Impulse Response (samples, abs)", FL_RED );
+  fdui->graph[1].chartid=SCOPEMSG_DATAID_TRESP; 
   fl_get_object_bbox(fdui->graph[1].graph,&x, &y,&w, &h);
   curY+=h;
   // Frequency-domain channel response

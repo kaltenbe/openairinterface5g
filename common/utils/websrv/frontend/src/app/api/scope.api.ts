@@ -6,6 +6,7 @@ export enum IScopeGraphType {
     IQs = "IQs",
     LLR = "LLR",
     WF  = "WF",
+    TRESP = "TRESP",
     UNSUP = "UNSUP"
 }
 

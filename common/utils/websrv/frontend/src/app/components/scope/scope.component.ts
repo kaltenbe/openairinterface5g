@@ -1,6 +1,6 @@
 import { Component, EventEmitter, OnDestroy, OnInit, Output, QueryList, ViewChildren } from "@angular/core";
 import { Chart, ChartConfiguration } from 'chart.js';
-import { BaseChartDirective } from 'ng2-charts';
+import { BaseChartDirective} from 'ng2-charts';
 import { Subscription } from 'rxjs';
 import { IGraphDesc, IScopeDesc, IScopeGraphType, ISigDesc, ScopeApi } from 'src/app/api/scope.api';
 import { arraybuf_data_offset, Message, WebSocketService, webSockSrc } from "src/app/services/websocket.service";
@@ -56,6 +56,7 @@ const SCOPEMSG_TYPE_DATAACK = 11;
 const SCOPEMSG_DATA_IQ = 1;
 const SCOPEMSG_DATA_LLR = 2;
 const SCOPEMSG_DATA_WF = 3;
+const SCOPEMSG_DATA_TRESP = 4;
 /*---------------------------------------*/
 @Component({
   selector: 'app-scope',
@@ -74,6 +75,9 @@ export class ScopeComponent implements OnInit, OnDestroy {
   startstop_color = 'warn';
   rfrate = 2;
   data_ACK = false;
+  // data for Time Response chart
+  TRespgraph: IGraphDesc={title:"", type:IScopeGraphType.TRESP,id:-1,srvidx:-1};
+  enable_TResp = false;
   //data for scope iq constellation area    
   iqgraph_list: IGraphDesc[] = [];
   selected_channels = [""];
@@ -103,6 +107,7 @@ export class ScopeComponent implements OnInit, OnDestroy {
   llrchart?: Chart;
   iqcchart?: Chart;
   wfchart?: Chart;
+  trespchart?:Chart;
   nwf: number[] = [0, 0, 0, 0];
 
   // websocket service object and related subscription for message reception 
@@ -112,6 +117,20 @@ export class ScopeComponent implements OnInit, OnDestroy {
 
   @ViewChildren(BaseChartDirective) charts?: QueryList<BaseChartDirective>;
 
+  public TRespDatasets: ChartConfiguration<'line'>['data']['datasets'] = [
+    {
+      data:[],
+      label: '',
+      pointRadius: 1,
+      showLine: true,
+      animation: false,
+      fill: false,
+      pointStyle: 'circle',
+      backgroundColor: 'rgba(255,0,0,0)',
+      borderColor: 'red',
+      pointBorderColor: 'red',
+    },
+  ];
   public IQDatasets: ChartConfiguration<'scatter'>['data']['datasets'] = [
     {
       data: [],
@@ -121,7 +140,7 @@ export class ScopeComponent implements OnInit, OnDestroy {
       animation: false,
       fill: false,
       pointStyle: 'circle',
-      pointBackgroundColor: 'yellow',
+//      pointBackgroundColor: 'yellow',
       backgroundColor: 'yellow',
       borderWidth: 0,
       pointBorderColor: 'yellow',
@@ -254,8 +273,12 @@ export class ScopeComponent implements OnInit, OnDestroy {
     }
   ];
 
-
-
+  public TRespOptions: ChartConfiguration<'line'>['options'] = {
+    responsive: true, 
+//    aspectRatio: 2,  
+    plugins: { legend: { display: true, labels: { boxWidth: 10, boxHeight: 10 } }, tooltip: { enabled: false, }, },
+  };
+  TRespLabels: number[] = [0];
   public IQOptions: ChartConfiguration<'scatter'>['options'] = {
     responsive: true,
     aspectRatio: 1,
@@ -345,6 +368,10 @@ export class ScopeComponent implements OnInit, OnDestroy {
         if (resp.graphs[graphIndex].type == IScopeGraphType.WF) {
           this.WFgraph_list.push(resp.graphs[graphIndex]);
         }
+         if (resp.graphs[graphIndex].type == IScopeGraphType.TRESP) {
+          this.TRespgraph=resp.graphs[graphIndex];
+          this.TRespDatasets[0].label = resp.graphs[graphIndex].title;
+        }       
       }
       this.charts?.forEach((child) => {
         child.chart?.update()
@@ -367,14 +394,24 @@ export class ScopeComponent implements OnInit, OnDestroy {
         break;
       case SCOPEMSG_TYPE_DATA:
         const bufferview = new DataView(message.content);
-
-
+        if (message.update) {
+            console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString() + " data length: " +  bufferview.byteLength);
+        }        
         switch (message.chartid) {
+          case SCOPEMSG_DATA_TRESP:
+            d = 0;
+            for (let i = 0; i < bufferview.byteLength ; i = i + 4) {
+              this.TRespDatasets[0].data[d] = {x:d, y:bufferview.getFloat32(i,true)} ;
+              this.TRespLabels[d] = d ;
+              d++;
+            }
+            if (message.update) {
+              this.trespchart!.update();
+              console.log(" TRESP view update completed " + d.toString() + " points ");
+            }            
+            break;
           case SCOPEMSG_DATA_IQ:
             this.IQDatasets[message.dataid].data.length = 0;
-            if (message.update) {
-              console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
-            }
             for (let i = 0; i < bufferview.byteLength; i = i + 4) {
               this.IQDatasets[message.dataid].data[i / 4] = { x: bufferview.getInt16(i, true), y: bufferview.getInt16(i + 2, true) };
             }
@@ -384,9 +421,6 @@ export class ScopeComponent implements OnInit, OnDestroy {
             }
             break;
           case SCOPEMSG_DATA_LLR:
-            if (message.update) {
-              console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
-            }
             this.LLRDatasets[message.dataid].data.length = 0;
             let xoffset = 0;
             d = 0;
@@ -403,7 +437,6 @@ export class ScopeComponent implements OnInit, OnDestroy {
             break;
           case SCOPEMSG_DATA_WF:
             if (message.update) {
-              console.log("Starting scope update chart " + message.chartid.toString() + ", dataset " + message.dataid.toString());
               if (message.segnum == 0) {
                 for (let i = 0; i < this.WFDatasets.length; i++) {
                   this.nwf[i] = 0;
@@ -420,7 +453,7 @@ export class ScopeComponent implements OnInit, OnDestroy {
             }
             if (message.update) {
               this.wfchart!.update();
-              console.log(" scope update completed " + d.toString() + "points, ");
+              console.log(" WF view update completed " + d.toString() + "points, ");
             }
             break;
           default:
@@ -457,9 +490,12 @@ export class ScopeComponent implements OnInit, OnDestroy {
           this.llrchart = Chart.getChart("llr");
           this.iqcchart = Chart.getChart("iqc");
           this.wfchart = Chart.getChart("wf");
+          this.trespchart = Chart.getChart("tresp");
           this.IQDatasets.forEach((dataset) => { dataset.data.length = 0 });
           this.LLRDatasets.forEach((dataset) => { dataset.data.length = 0 });
-          this.charts?.forEach((child, index) => { child.chart?.update() });
+          this.WFDatasets.forEach((dataset) => { dataset.data.length = 0 });
+          this.TRespDatasets.forEach((dataset) => { dataset.data.length = 0 });
+          this.charts?.forEach((child, index) => { child.chart?.update() });          
           this.scopestatus = 'starting';
           this.SigChanged(this.selected_sig.target_id);
           this.OnRefrateChange();
@@ -473,6 +509,7 @@ export class ScopeComponent implements OnInit, OnDestroy {
           this.channelsChanged(this.selected_channels);
           this.llrchannelsChanged(this.selected_llrchannels);
           this.WFChanged(this.selected_WF);
+          this.onEnableTResp();
           for (let i = 0; i < this.WFDatasets.length; i++) {
             this.nwf[i] = 0;
             this.WFDatasets[i].data.length = 0;
@@ -574,12 +611,42 @@ export class ScopeComponent implements OnInit, OnDestroy {
       this.WFDatasets[i].data.length = 0;
     }    
   }
-
+  onEnableTResp() {
+    this.SendScopeParams("enabled",this.enable_TResp.toString() , this.TRespgraph.srvidx);
+  }
+  
   onDataACKchange() {
     this.SendScopeParams("DataAck", this.data_ACK.toString(), 0);
   }
 
   OnYthreshChange() {
     this.SendScopeParams("llrythresh", this.llrythresh.toString(), 0);
+  }
+  
+  RefreshTResp() {
+	 this.TRespDatasets[0].data.length = 0 ;
+	 this.trespchart!.update(); 
+  }
+  
+  RefreshIQV() {
+	 this.IQDatasets.forEach((dataset) => { dataset.data.length = 0 });
+	 this.iqxmin = this.iqmin;
+     this.iqymin = this.iqmin;
+     this.iqxmax = this.iqmax;
+     this.iqymax = this.iqmax;
+	 this.iqcchart!.update(); 
+  }
+  
+  RefreshLLR() {
+	 this.LLRDatasets.forEach((dataset) => { dataset.data.length = 0 });
+     this.llrxmin = this.llrmin;
+     this.llrxmax = this.llrmax; 
+	 this.llrchart!.update(); 
+  }
+  
+  RefreshWF() {
+	 this.WFDatasets.forEach((dataset) => { dataset.data.length = 0 });
+	 this.nwf = [0, 0, 0, 0];
+	 this.wfchart!.update(); 
   }
 }

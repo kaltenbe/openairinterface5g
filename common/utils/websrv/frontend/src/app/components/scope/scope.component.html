@@ -63,11 +63,11 @@
                 [type]="'scatter'">
               </canvas>
             </div> 
-            <br><br>
+            <br><br>     
             <!-- area for the control used to select WF data -->
-            <div fxFlex="0 1 10%"  style="width:60%">
-	        <mat-list-item class="WFselect" role="listitem">
-		      <mat-form-field class="select-form">
+            <div fxFlex="0 1 10%"  style="width:100%">
+			  <div class="form-group" fxFlex="50%"><mat-list-item class="WFselect" role="listitem">
+			  <mat-form-field class="select-form">
 			  <mat-select placeholder="select data" name="WFSelect" class="WFSelect" [value]="selected_WF" (selectionChange)="WFChanged($event.value)" >
 				 <mat-option *ngFor="let graph of WFgraph_list" [value]="graph.title" > 
 					{{graph.title}}
@@ -75,17 +75,34 @@
 				 <mat-option>none</mat-option>
 			  </mat-select>
 		      </mat-form-field>
-	        </mat-list-item>
-	        </div>
+	        </mat-list-item></div>
+	        <div class="form-group" fxFlex="25%"><button mat-raised-button color="primary" (click)="RefreshWF()">Refresh</button> </div> 
 	      </div> 
-        </mat-card-content>
+        </div></mat-card-content>
       </mat-card>
     </mat-grid-tile>
-<!-- right area for -->    
-    <mat-grid-tile [colspan]="3" [rowspan]="2">		
+<!-- right area for Time Response data -->    
+    <mat-grid-tile [colspan]="3" [rowspan]="3">		
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
-
+		  <div fxLayout="column">
+			<!-- area for the chart -->
+			<div  fxFlex="1 1 80% "  style="width:100%">
+              <canvas baseChart id="tresp"
+                [datasets]="TRespDatasets"
+                [options]="TRespOptions"
+                [labels]="TRespLabels"
+                [type]="'line'">
+              </canvas>
+            </div> 
+            <br><br>
+            <!-- area for the control used to enable -->
+            <div fxFlex="0 1 20%"  style="width:60%">
+	          <div class="form-group" fxFlex="50%"><mat-slide-toggle [checked]="enable_TResp" (change)="onEnableTResp()" [(ngModel)]="enable_TResp">enable:
+              </mat-slide-toggle> </div>
+	          <div class="form-group" fxFlex="25%"><button mat-raised-button color="primary" (click)="RefreshTResp()">Refresh</button> </div>                
+	        </div>
+	      </div> 
         </mat-card-content>
       </mat-card>
     </mat-grid-tile> 
@@ -95,14 +112,14 @@
       <mat-card class="dashboard-card">
         <mat-card-content class="dashboard-card-content">
 			<div fxLayout="column">
-			  <div  fxFlex="1 1 90% ">
+			  <div  fxFlex="1 1 80% ">
               <canvas baseChart id="llr" width="90%"
                 [datasets]=" LLRDatasets"
                 [options]="LLROptions"
                 [type]="'scatter'">
               </canvas>
               </div>
-            <div fxFlex="0 1 5%"  style="width:100%">
+            <div fxFlex="0 1 10%"  style="width:100%">
 	        <div class="form-group" fxFlex="50%"> <mat-list-item class="llrchannelselect" role="listitem">
 		      <mat-form-field class="select-form">
 			  <mat-select placeholder="Channels(llr view)" name="llrChannelsSelect" class="ChannelsSelect" multiple [value]="selected_llrchannels" (selectionChange)="llrchannelsChanged($event.value)" >
@@ -123,19 +140,16 @@
               </mat-slider>
             </div>				
 			</div>			
-	        <div fxFlex="0 1 5%">            
-            <div class="form-group" fxFlex="25%">  	
-            <mat-form-field appearance="fill">
+	        <div fxFlex="0 1 10%">            
+            <div class="form-group" fxFlex="25%"> <mat-form-field appearance="fill">
             <mat-label>xmin</mat-label>
             <input matInput type="number" (change)="OnLLRxminChange()" [value]="llrxmin" [(ngModel)]="llrxmin" min="llrmin" [max]="llrmax"> 
-            </mat-form-field>
-            </div>
-            <div class="form-group" fxFlex="25%">
-            <mat-form-field appearance="fill">
+            </mat-form-field></div>
+            <div class="form-group" fxFlex="25%"><mat-form-field appearance="fill">
             <mat-label>xmax</mat-label>
             <input matInput type="number" (change)="OnLLRxmaxChange()" [value]="llrxmax" [(ngModel)]="llrxmax" min="llrmin" [max]="llrmax">
-            </mat-form-field>           			        
-            </div>                              
+            </mat-form-field></div>
+            <div class="form-group" fxFlex="25%"><button mat-raised-button color="primary" (click)="RefreshLLR()">Refresh</button> </div>               
             </div>			
 	      </div>                 
         </mat-card-content>
@@ -158,7 +172,7 @@
             <br><br>
             <!-- area for the control used to select channel's -->
             <div fxFlex="0 1 10%"  style="width:60%">
-	        <mat-list-item class="channelselect" role="listitem">
+			<div class="form-group" fxFlex="50%"> <mat-list-item class="channelselect" role="listitem">
 		      <mat-form-field class="select-form">
 			  <mat-select placeholder="Channels(IQ view)" name="ChannelsSelect" class="ChannelsSelect" multiple [value]="selected_channels" (selectionChange)="channelsChanged($event.value)" >
 				 <mat-option *ngFor="let graph of iqgraph_list" [value]="graph.title" >
@@ -166,7 +180,8 @@
 				 </mat-option>
 			  </mat-select>
 		      </mat-form-field>
-	        </mat-list-item>
+	        </mat-list-item></div>	        
+	        <div class="form-group" fxFlex="25%"><button mat-raised-button color="primary" (click)="RefreshIQV()">Refresh</button> </div>  
 	        </div>
 	        <!-- area for the 4 controls used to select x and y limits for data -->
 	        <div fxFlex="0 1 5%">            

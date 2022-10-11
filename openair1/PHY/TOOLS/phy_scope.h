@@ -33,6 +33,7 @@
 #define SCOPEMSG_DATAID_IQ 1
 #define SCOPEMSG_DATAID_LLR 2
 #define SCOPEMSG_DATAID_WF  3
+#define SCOPEMSG_DATAID_TRESP 4
 
 typedef c16_t scopeSample_t;
 #define SquaredNorm(VaR) ((VaR).r*(VaR).r+(VaR).i*(VaR).i)
