@@ -42,11 +42,13 @@ from datetime import datetime
 
 class AS_UE:
 
-	def __init__(self,Module):
-		#create attributes as in the UE dictionary
-		for k, v in Module.items():
-			setattr(self, k, v)
-	
+    def __init__(self,Module):
+        #create attributes as in the UE dictionary
+        for k, v in Module.items():
+            setattr(self, k, v)
+        self.cmd_to_ue = { "attach" : self.WakeupScript, "detach" : self.DetachScript}
+        self.UEIPAddress = ''
+
 
 
 
@@ -54,28 +56,63 @@ class AS_UE:
 #PUBLIC Methods$
 #-----------------$
 
-	def WaitEndScenario(self):
-		logging.debug('waiting for scenario duration')
-		time.sleep(int(self.Duration))
+    def WaitEndScenario(self):
+        logging.debug('waiting for scenario duration')
+        time.sleep(int(self.Duration))
 
-	def KillASUE(self):
-		mySSH = sshconnection.SSHConnection()
-		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
-		mySSH.command('killall --signal SIGKILL lteue-avx2', '#', 5)
-		mySSH.close()
+    def KillASUE(self):
+        mySSH = sshconnection.SSHConnection()
+        mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
+        mySSH.command('killall --signal SIGKILL lteue-avx2', '#', 5)
+        mySSH.close()
 
-	def RunScenario(self):
-		mySSH = sshconnection.SSHConnection()
-		mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
+    def RunScenario(self):
+        mySSH = sshconnection.SSHConnection()
+        mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
 
-		logging.debug("Deleting old artifacts :")
-		cmd='rm -rf ' + self.Ping + ' ' + self.UELog 
-		mySSH.command(cmd,'#',5)
-		logging.debug("Running scenario :")
-		cmd='echo $USER; nohup '+self.Cmd + ' ' + self.Config + ' &'
-		mySSH.command(cmd,'#',5)
+        logging.debug("Deleting old artifacts :")
+        cmd='rm -rf ' + self.Ping + ' ' + self.UELog
+        mySSH.command(cmd,'#',5)
+        logging.debug("Running scenario :")
+        cmd='echo $USER; nohup '+self.Cmd + ' ' + self.Config + ' &'
+        mySSH.command(cmd,'#',5)
 
-		mySSH.close()
+        mySSH.close()
 
+    def ASUEScenario(self, as_ue_cmd):
+        mySSH = sshconnection.SSHConnection()
+        mySSH.open(self.HostIPAddress, self.HostUsername, self.HostPassword)
+        cmd = 'echo $USER; nohup '+self.cmd_to_ue[as_ue_cmd]
+        mySSH.command(cmd,'#',5)
+        mySSH.close()
+
+    def GetModuleIPAddress(self):
+        HOST=self.HostUsername+'@'+self.HostIPAddress
+        response= []
+        tentative = 8
+        while (len(response)==0) and (tentative>0):
+            COMMAND="ip netns exec ue1 ip a " + self.UENetwork + " | grep --colour=never inet | grep " + self.UENetwork
+            if tentative == 8:
+                logging.debug(COMMAND)
+                ssh = subprocess.Popen(["ssh", "%s" % HOST, COMMAND],shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                response = ssh.stdout.readlines()
+                tentative-=1
+                time.sleep(2)
+                if (tentative==0) and (len(response)==0):
+                    logging.debug('\u001B[1;37;41m Module IP Address Not Found! Time expired \u001B[0m')
+                    return -1
+                else: #check response
+                    result = re.search('inet (?P<moduleipaddress>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)', response[0].decode("utf-8") )
+                    if result is not None:
+                        if result.group('moduleipaddress') is not None:
+                            self.UEIPAddress = result.group('moduleipaddress')
+                            logging.debug('\u001B[1mUE Module IP Address is ' + self.UEIPAddress + '\u001B[0m')
+                            return 0
+                        else:
+                            logging.debug('\u001B[1;37;41m Module IP Address Not Found! \u001B[0m')
+                            return -1
+                    else:
+                        logging.debug('\u001B[1;37;41m Module IP Address Not Found! \u001B[0m')
+                        return -1
 
 

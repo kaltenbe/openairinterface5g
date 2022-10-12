@@ -46,12 +46,11 @@ amarisoft_ue_1:
   ID: amarisoft_ue_1
   State : enabled
   Kind : amarisoft
-  #not required for AS config but needed for py script
-  WakeupScript : none
-  DetachScript : none
-  #end 
   Cmd : /root/NV18-06-2022/ue/lteue
-  Config : /root/NV17-12-21/ue/config/oaicicd-ue-Ping-SATest.cfg 
+  Config : /root/NV17-12-21/ue/config/oaicicd-ue-Ping-SATest.cfg
+  WakeupScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_on","ue_id" :1}'
+  DetachScript : /root/NV18-06-2022/lteue-linux-2022-06-18/doc/ws.js 127.0.0.1:9002 '{"message" :"power_off","ue_id" :1}'
+  UENetwork : pdn0
   Duration : 60
   Ping : /tmp/test_ue1.log
   UELog : /tmp/ue1.log
