@@ -46,11 +46,10 @@ export interface TxScopeMessage {
 
 /*------------------------------------*/
 /* constants that must match backend (websrv.h or phy_scope.h) */
-const SCOPEMSG_TYPE_STATUSUPD = 1;
-const SCOPEMSG_TYPE_REFRATE = 2;
 const SCOPEMSG_TYPE_TIME = 3;
 const SCOPEMSG_TYPE_DATA = 10;
 const SCOPEMSG_TYPE_DATAACK = 11;
+const SCOPEMSG_TYPE_DATAFLOW = 12;
 
 
 const SCOPEMSG_DATA_IQ = 1;
@@ -70,6 +69,8 @@ export class ScopeComponent implements OnInit, OnDestroy {
   scopesubtitle = '';
   scopetime = '';
   scopestatus = 'stopped';
+  skippedmsg = "0";
+  bufferedmsg = "0";
   //data for scope control area 
   startstop = 'start';
   startstop_color = 'warn';
@@ -343,7 +344,7 @@ export class ScopeComponent implements OnInit, OnDestroy {
     this.wsSubscription?.unsubscribe();
   }
 
-  DecodScopeBinmsgToString(message: ArrayBuffer) {
+  DecodScopeBinmsgToString(message: ArrayBuffer) :string{
     const enc = new TextDecoder("utf-8");
     return enc.decode(message);
   }
@@ -392,6 +393,13 @@ export class ScopeComponent implements OnInit, OnDestroy {
       case SCOPEMSG_TYPE_TIME:
         this.scopetime = this.DecodScopeBinmsgToString(message.content);
         break;
+      case SCOPEMSG_TYPE_DATAFLOW:
+        let infobuff=this.DecodScopeBinmsgToString(message.content).split("|");
+        if (infobuff.length >= 2) {
+          this.skippedmsg = infobuff[0]!;
+          this.bufferedmsg = infobuff[1]!;
+	    }
+        break;        
       case SCOPEMSG_TYPE_DATA:
         const bufferview = new DataView(message.content);
         if (message.update) {
@@ -478,15 +486,34 @@ export class ScopeComponent implements OnInit, OnDestroy {
     console.log("Scope sent msg type " + type.toString() + " " + strmessage);
   }
 
-  private SendScopeParams(name: string, value: string, graphid: number) {
-    this.scopeApi.setScopeParams$({ name: name, value: value, graphid: graphid }).subscribe();
+  private SendScopeParams (name: string, value: string, graphid: number): number {
+	let status= 0;
+      this.scopeApi.setScopeParams$({ name: name, value: value, graphid: graphid }).subscribe(
+        () => {},
+        err => {
+		  console.log("scope SendScopeParams: error received: " + err);
+		  this.StopScope();
+	    },
+       () => console.log("scope SendScopeParams OK")
+      );
+    return status;
   }
 
+  private StopScope() {
+	if (this.wsSubscription)
+        this.wsSubscription.unsubscribe();
+
+    this.scopestatus = 'stopped';
+    this.startstop = 'start';
+    this.startstop_color = 'warn';
+    this.skippedmsg = "0";
+    this.bufferedmsg = "0";
+  }
+  
   startorstop() {
     if (this.scopestatus === 'stopped') {
-
-      this.scopeApi.setScopeParams$({ name: "startstop", value: "start" }).subscribe(
-        () => {
+      let status=this.SendScopeParams("startstop", "start", 0);
+      if( status==0){
           this.llrchart = Chart.getChart("llr");
           this.iqcchart = Chart.getChart("iqc");
           this.wfchart = Chart.getChart("wf");
@@ -517,28 +544,15 @@ export class ScopeComponent implements OnInit, OnDestroy {
           this.wsService = new (WebSocketService);
 
           this.wsSubscription = this.wsService.subject$.subscribe(
-            (msg: Message) => this.ProcessScopeMsg(deserialize(msg.fullbuff))
+            msg => this.ProcessScopeMsg(deserialize(msg.fullbuff)),
+            err => {console.error('WebSocket Observer got an error: ' + err);
+                    this.StopScope()},
+            () => {console.error('WebSocket Observer completed: ');}
           )
-        },
-        err => {
-
         }
-      );
     } else {
-      this.scopeApi.setScopeParams$({ name: "startstop", value: "stop" }).subscribe(
-        () => {
-          if (this.wsSubscription)
-            this.wsSubscription.unsubscribe();
-
-          this.scopestatus = 'stopped';
-          this.startstop = 'start';
-          this.startstop_color = 'warn';
-          this.charts?.forEach((child, index) => { child.chart?.update() });
-
-        },
-        err => {
-        }
-      );
+	  this.SendScopeParams("startstop", "stop", 0);
+      this.StopScope();
     }
   }
 

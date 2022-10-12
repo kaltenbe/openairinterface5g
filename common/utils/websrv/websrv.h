@@ -95,12 +95,11 @@ typedef struct {
 
 /* values for websocket message type */
 /* websocket softscope message: */
-#define SCOPEMSG_TYPE_STATUSUPD          1    // scope status: available, started....
-#define SCOPEMSG_TYPE_REFRATE            2    // scope refresh delay
 #define SCOPEMSG_TYPE_TIME               3    // time
 #define SCOPEMSG_TYPE_DATA               10   // graph data
 #define SCOPEMSG_TYPE_DATAACK            11   // graph data reception and processing acknowledge
-#define SCOPEMSG_TYPE_DEFINEWINDOW       20   // scope window definition 
+#define SCOPEMSG_TYPE_DATAFLOW           12   // feedback to frontend of messages not sent 
+
 typedef struct {
 	 uint64_t statusmask;                     // 
 	 uint32_t refrate;                        // in 100 ms
@@ -114,8 +113,10 @@ typedef struct {
      int   llr_ythresh;                       // llrview llr threshold
      int   llrxmin;                           //llr view x limits
      int   llrxmax;
-     uint64_t num_sent;
-     uint64_t num_ack;
+     uint64_t num_datamsg_max;                // num_datamsg_xxxx are used to
+     uint64_t num_datamsg_sent;               // control  the data message flow to
+     uint64_t num_datamsg_ack;                // the frontend, preventing data messages to be sent
+     uint64_t num_datamsg_skipped;            // when date ack is requested and the the diff between sent and ack obove limit
 } websrv_scope_params_t;
 
 /*------------------------------------------------------------------------------------------------*/

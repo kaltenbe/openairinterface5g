@@ -29,6 +29,7 @@
 #ifndef WEBSRVSCOPE
 #  include <forms.h>
 #  define STATICFORXSCOPE static
+static const int scope_enb_num_ue = 1;
 #else
 #  include <ulfius.h>
 #  include "common/utils/websrv/websrv.h"
@@ -243,7 +244,7 @@ static OAIgraph_t nrUEcommonGraph( void (*funct) (scopeGraphData_t **data, OAIgr
   graph.nrUEfunct=funct;
   return graph;
 }
-
+#ifndef WEBSRVSCOPE
 static void setRange(OAIgraph_t *graph, float minX, float maxX, float minY, float maxY) {
   if ( maxX > graph->maxX ||  minX < graph->minX ||
        abs(maxX-graph->maxX)>abs(graph->maxX)/2 ||
@@ -265,7 +266,7 @@ static void setRange(OAIgraph_t *graph, float minX, float maxX, float minY, floa
     fl_set_xyplot_ybounds(graph->graph, graph->minY*1.2, graph->maxY*1.2);
   }
 }
-#ifndef WEBSRVSCOPE
+
 static void oai_xygraph_getbuff(OAIgraph_t *graph, float  **x, float **y, int len, int layer) {
   float *old_x;
   float *old_y;
@@ -666,7 +667,7 @@ STATICFORXSCOPE OAI_phy_scope_t *create_phy_scope_gnb(void) {
   fl_show_form (fdui->phy_scope, FL_PLACE_HOTSPOT, FL_FULLBORDER, "LTE UL SCOPE gNB");
   return fdui;
 }
-static const int scope_enb_num_ue = 1;
+
 STATICFORXSCOPE void phy_scope_gNB(OAI_phy_scope_t *form,
                    scopeData_t *p,
                    int UE_id) {

@@ -50,6 +50,10 @@
 static websrv_scope_params_t scope_params = {0,1000,NULL,NULL,65535};
 static websrv_params_t *websrvparams_ptr;
 
+void websrv_websocket_send_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager) {
+  websrv_websocket_send_message(WEBSOCK_SRC_SCOPE,msg_type, msg_data,websocket_manager)  ;
+}
+
 void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
 /* 
 
@@ -58,31 +62,38 @@ void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
     msg->data_xy[(2*i)+1]= (i>(n/4))? 10 : -10; 
   }*/
   msg->header.src=WEBSOCK_SRC_SCOPE ;
-  if (((scope_params.num_sent-scope_params.num_ack)<200) || !(scope_params.statusmask & SCOPE_STATUSMASK_DATAACK)) {
+  int diff= scope_params.num_datamsg_sent;
+  char strbuff[128];
+  
+  diff=__atomic_sub_fetch(&diff,scope_params.num_datamsg_ack,__ATOMIC_SEQ_CST);
+  if ((diff<scope_params.num_datamsg_max) || !(scope_params.statusmask & SCOPE_STATUSMASK_DATAACK)) {
     int st = ulfius_websocket_send_message( websrvparams_ptr->wm, U_WEBSOCKET_OPCODE_BINARY,(numd*dsize)+WEBSOCK_HEADSIZE, (char *)msg);
     if (st != U_OK)
       LOG_I(UTIL, "Error sending scope IQs, status %i\n",st);
-    scope_params.num_sent++; 
-  }  
+    else {
+      scope_params.num_datamsg_sent++;
+      if (diff >0 &&((scope_params.num_datamsg_sent%10) == 0)) {
+         snprintf(strbuff,sizeof(strbuff),"%lu|%d",scope_params.num_datamsg_skipped,diff);		
+	     websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_DATAFLOW, strbuff, websrvparams_ptr->wm);		  
+	  }
+    }
+  }  else {
+	  LOG_W(UTIL,"[websrv] %i messages with no ACK\n",diff);
+	  scope_params.num_datamsg_skipped++;
+
+      snprintf(strbuff,sizeof(strbuff),"%lu|%d",scope_params.num_datamsg_skipped,diff);		
+	  websrv_websocket_send_scopemessage(SCOPEMSG_TYPE_DATAFLOW, strbuff, websrvparams_ptr->wm);		  
+  }
 };
 
 
-void websrv_websocket_send_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager) {
-  websrv_websocket_send_message(WEBSOCK_SRC_SCOPE,msg_type, msg_data,websrvparams_ptr->wm)  ;
-}
+
 
 void websrv_websocket_process_scopemessage(char msg_type, char *msg_data, struct _websocket_manager * websocket_manager) {
   LOG_I(UTIL,"[websrv] processing scope message type %i\n", msg_type);
   switch ( msg_type ) {
- 
-    case SCOPEMSG_TYPE_STATUSUPD:
-      if (strncmp(msg_data,"disabled",8) == 0){
-		LOG_I(UTIL,"[websrv] SoftScope disabled state client ack  \n");  
-        scope_params.statusmask = SCOPE_STATUSMASK_DISABLED;
-      }	    
-      break;
     case SCOPEMSG_TYPE_DATAACK:
-      scope_params.num_ack++;
+      scope_params.num_datamsg_ack++;
       break;      
     default:
       LOG_W(UTIL,"[websrv] Unprocessed scope message type: %c /n",msg_type);
@@ -122,12 +133,11 @@ void websrv_scope_stop(void) {
 		   websrv_free_xyplot(sp->graph[i].graph);
 	   }
 	 free(sp);
-	 scope_params.scopeform=NULL; 
-	 scope_params.num_ack=0;
-	 scope_params.num_sent=0;  	 	
+	 scope_params.scopeform=NULL;	
 }
 
 char *websrv_scope_initdata(void) {
+	  scope_params.num_datamsg_max=200; 
 	  if (IS_SOFTMODEM_GNB_BIT) {
 		scopeParms_t p;			 
 		p.ru=RC.ru[0];
@@ -168,6 +178,9 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
          if(strcmp(vname,"startstop") == 0) {
 			 if( strcmp(vval,"start") == 0) {
 				if ( scope_params.statusmask & SCOPE_STATUSMASK_AVAILABLE) {
+			      scope_params.num_datamsg_sent=0;
+			      scope_params.num_datamsg_ack=0;
+			   	  scope_params.num_datamsg_skipped=0; 	 
 				  websrv_scope_initdata();
                   scope_params.statusmask |= SCOPE_STATUSMASK_STARTED;
                   scope_params.selectedTarget=0; // 1 UE to be received from GUI (for xNB scope's 
@@ -217,10 +230,11 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
            scope_params.selectedTarget=strtol(vval,NULL,10);
            httpstatus=200;   
 		 } else if (strcmp(vname,"DataAck") == 0) {
-			 if (strcasecmp(vval,"true")==0)
-                scope_params.statusmask |= SCOPE_STATUSMASK_DATAACK;
-             else
+			 if (strcasecmp(vval,"true")==0) {
+                scope_params.statusmask |= SCOPE_STATUSMASK_DATAACK;                                          
+             } else {
                 scope_params.statusmask &= (~SCOPE_STATUSMASK_DATAACK);
+			 }
            httpstatus=200;
 		 } else if (strcmp(vname,"llrythresh") == 0) {
                 scope_params.llr_ythresh = strtol(vval,NULL,10);
