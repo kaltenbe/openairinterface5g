@@ -408,35 +408,11 @@ add_dependencies(NR_RRC_LIB nr_rrc_flag)
 include_directories ("${NR_RRC_FULL_DIR}")
 
 # S1AP
-# Same limitation as described in RRC: unknown generated file list
-# so we generate it at cmake time
 ##############
-set (S1AP_RELEASE R15)
-
 set(S1AP_DIR ${OPENAIR3_DIR}/S1AP)
-make_version(S1AP_VERSION 15 6 0)
-set(S1AP_ASN_FILES "s1ap-15.6.0.asn1")
-
-add_definitions(-DS1AP_VERSION=${S1AP_VERSION})
-set(S1AP_ASN_DIR ${S1AP_DIR}/MESSAGES/ASN1/${S1AP_RELEASE})
-set(S1AP_C_DIR ${asn1_generated_dir}/S1AP_${S1AP_RELEASE})
-
-# Warning: if you modify ASN.1 source file to generate new C files, cmake should be re-run instead of make
-set(s1ap_cmd ${OPENAIR_CMAKE}/tools/make_asn1c_includes.sh  "S1AP_" -fno-include-deps "${S1AP_C_DIR}")
-
-compile_asn1("${S1AP_ASN_DIR}/${S1AP_ASN_FILES}" "${s1ap_cmd}"  s1ap_flag)
-
-file(GLOB S1AP_source ${S1AP_C_DIR}/*.c)
-add_library(S1AP_LIB
-  ${S1AP_source}
-  ${S1AP_DIR}/s1ap_common.c
-  )
-add_dependencies(S1AP_LIB rrc_flag s1ap_flag)
-
-include_directories ("${S1AP_C_DIR}")
 include_directories ("${S1AP_DIR}")
-
 add_library(S1AP_ENB
+  ${S1AP_DIR}/s1ap_common.c
   ${S1AP_DIR}/s1ap_eNB.c
   ${S1AP_DIR}/s1ap_eNB_context_management_procedures.c
   ${S1AP_DIR}/s1ap_eNB_decoder.c
@@ -450,8 +426,8 @@ add_library(S1AP_ENB
   ${S1AP_DIR}/s1ap_eNB_trace.c
   ${S1AP_DIR}/s1ap_eNB_ue_context.c
   )
-add_dependencies(S1AP_ENB rrc_flag s1ap_flag)
-
+add_dependencies(S1AP_ENB rrc_flag)
+target_link_libraries(S1AP_ENB PUBLIC asn1_s1ap)
 
 # NGAP
 # Same limitation as described in RRC: unknown generated file list
@@ -2020,7 +1996,7 @@ add_library(L2
   ${ENB_APP_SRC}
   ${MCE_APP_SRC}
   )
-add_dependencies(L2 rrc_flag s1ap_flag m2_flag m3_flag)
+add_dependencies(L2 rrc_flag m2_flag m3_flag)
 target_link_libraries(L2 PRIVATE F1AP X2AP_ENB)
 
 add_library(MAC_NR
@@ -2051,6 +2027,7 @@ add_library(L2_LTE_NR
   ${MCE_APP_SRC}
 )
 
+add_dependencies(L2_NR rrc_flag nr_rrc_flag x2_flag)
 target_link_libraries(L2_LTE_NR PRIVATE F1AP)
 
 add_library(L2_UE
@@ -2067,7 +2044,7 @@ if (NOT ${NOS1})
 target_compile_definitions(L2_UE PUBLIC -DPDCP_USE_NETLINK)
 endif()
 
-add_dependencies(L2_UE rrc_flag s1ap_flag)
+add_dependencies(L2_UE rrc_flag)
 
 add_library( NR_L2_UE ${NR_L2_SRC_UE} ${MAC_NR_SRC_UE} )
 target_link_libraries(NR_L2_UE PRIVATE F1AP)
@@ -2104,7 +2081,7 @@ set (MME_APP_SRC
   ${OPENAIR3_DIR}/MME_APP/mme_config.c
 )
 add_library(MME_APP ${MME_APP_SRC})
-add_dependencies(MME_APP rrc_flag s1ap_flag m2_flag m3_flag)
+add_dependencies(MME_APP rrc_flag m2_flag m3_flag)
 
 set(SCTP_SRC
   ${OPENAIR3_DIR}/SCTP/sctp_common.c
@@ -2623,11 +2600,11 @@ add_executable(lte-softmodem
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
-add_dependencies(lte-softmodem rrc_flag s1ap_flag oai_iqplayer)
+add_dependencies(lte-softmodem rrc_flag oai_iqplayer)
 
 target_link_libraries (lte-softmodem
   -Wl,--start-group
-  RRC_LIB NR_RRC_LIB S1AP_LIB S1AP_ENB M2AP_LIB M2AP_ENB X2AP_ENB M3AP_LIB M3AP_ENB GTPV1U F1AP SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_LIB SCHED_RU_LIB
+  RRC_LIB NR_RRC_LIB S1AP_ENB M2AP_LIB M2AP_ENB X2AP_ENB M3AP_LIB M3AP_ENB GTPV1U F1AP SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_LIB SCHED_RU_LIB
   PHY_COMMON PHY PHY_RU  L2 L2_LTE NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB MISC_NFAPI_LTE_LIB
   ${RAL_LIB} ${NAS_UE_LIB} ITTI ${FLPT_MSG_LIB} ${FLEXRAN_AGENT_LIB} ${FSPT_MSG_LIB}
   -Wl,--end-group z dl)
@@ -2662,12 +2639,12 @@ add_executable(ocp-enb
   ${T_SOURCE}
   ${SHLIB_LOADER_SOURCES}
   )
-add_dependencies(ocp-enb rrc_flag s1ap_flag oai_iqplayer coding params_libconfig rfsimulator)
+add_dependencies(ocp-enb rrc_flag oai_iqplayer coding params_libconfig rfsimulator)
 
 target_link_libraries (ocp-enb
   -Wl,--start-group
 
-  RRC_LIB NR_RRC_LIB S1AP_LIB S1AP_ENB F1AP M2AP_LIB M2AP_ENB X2AP_ENB M3AP_LIB M3AP_ENB GTPV1U SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_LIB SCHED_RU_LIB
+  RRC_LIB NR_RRC_LIB S1AP_LIB F1AP M2AP_LIB M2AP_ENB X2AP_ENB M3AP_LIB M3AP_ENB GTPV1U SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_LIB SCHED_RU_LIB
   PHY_COMMON PHY PHY_RU L2 L2_LTE NFAPI_COMMON_LIB NFAPI_LIB MISC_NFAPI_LTE_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB SIMU_COMMON
   ${RAL_LIB} ${NAS_UE_LIB} ITTI ${FLPT_MSG_LIB}  ${FLEXRAN_AGENT_LIB} ${FSPT_MSG_LIB}
   -Wl,--end-group z dl)
@@ -2717,14 +2694,14 @@ add_executable(lte-uesoftmodem
   ${SHLIB_LOADER_SOURCES}
   )
 
-add_dependencies(lte-uesoftmodem rrc_flag s1ap_flag)
+add_dependencies(lte-uesoftmodem rrc_flag)
 
 if (NOT ${NOS1})
 	target_compile_definitions(lte-uesoftmodem PRIVATE -DPDCP_USE_NETLINK)
 endif()
 target_link_libraries (lte-uesoftmodem
   -Wl,--start-group
-  RRC_LIB NR_RRC_LIB S1AP_LIB S1AP_ENB X2AP_ENB M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB
+  RRC_LIB NR_RRC_LIB S1AP_LIB X2AP_ENB M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB
   SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_RU_LIB SCHED_UE_LIB PHY_COMMON
   PHY_UE PHY_RU L2_UE L2_LTE SIMU_COMMON SIMU NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB NFAPI_USER_LIB MISC_NFAPI_LTE_LIB
   ${RAL_LIB} ${NAS_UE_LIB} ITTI ${FLPT_MSG_LIB}  ${ATLAS_LIBRARIES}
@@ -2767,7 +2744,7 @@ target_link_libraries (nr-softmodem
   -Wl,--start-group
   UTIL HASHTABLE SCTP_CLIENT SCHED_LIB SCHED_RU_LIB SCHED_NR_LIB PHY_NR PHY PHY_COMMON PHY_NR_COMMON PHY_RU GTPV1U SECU_CN SECU_OSA
   ITTI ${FLPT_MSG_LIB} ${FLEXRAN_AGENT_LIB} ${RAL_LIB} ${NAS_UE_LIB} RRC_LIB NR_RRC_LIB
-  NGAP_LIB NGAP_GNB S1AP_LIB S1AP_ENB L2_LTE_NR L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB
+  NGAP_LIB NGAP_GNB S1AP_ENB L2_LTE_NR L2_NR MAC_NR_COMMON NFAPI_COMMON_LIB NFAPI_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB
   X2AP_ENB F1AP M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB ${FSPT_MSG_LIB}
   -Wl,--end-group z dl)
 
@@ -3052,7 +3029,7 @@ if (${T_TRACER})
         syncsim nr_ulsim nr_dlsim nr_dlschsim nr_pbchsim nr_pucchsim
         nr_ulschsim ldpctest polartest smallblocktest cu_test du_test
         #all "add_library" definitions
-        ITTI RRC_LIB NR_RRC_LIB S1AP_LIB S1AP_ENB X2AP_ENB M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB F1AP
+        ITTI RRC_LIB NR_RRC_LIB S1AP_ENB X2AP_ENB M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB F1AP
         params_libconfig oai_exmimodevif oai_usrpdevif oai_bladerfdevif oai_lmssdrdevif oai_iqplayer
         oai_eth_transpro oai_mobipass coding FLPT_MSG FLEXRAN_AGENT HASHTABLE UTIL OMG_SUMO
         SECU_OSA SECU_CN SCHED_LIB SCHED_NR_LIB SCHED_RU_LIB SCHED_UE_LIB SCHED_NR_UE_LIB default_sched remote_sched RAL
@@ -3172,3 +3149,4 @@ include (${OPENAIR_DIR}/common/utils/telnetsrv/telnetsrv_CMakeLists.txt)
 include(${OPENAIR1_DIR}/PHY/CODING/nrLDPC_decoder/nrLDPC_tools/CMakeLists.txt)
 
 add_subdirectory(openair2)
+add_subdirectory(openair3)
