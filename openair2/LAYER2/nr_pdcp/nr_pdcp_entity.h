@@ -23,6 +23,7 @@
 #define _NR_PDCP_ENTITY_H_
 
 #include <stdint.h>
+#include "openair2/COMMON/platform_types.h"
 
 #include "nr_pdcp_sdu.h"
 #include "openair2/RRC/NR/rrc_gNB_radio_bearers.h"
@@ -170,6 +171,6 @@ nr_pdcp_entity_t *new_nr_pdcp_entity(
     unsigned char *ciphering_key,
     unsigned char *integrity_key);
 
-void nr_DRB_preconfiguration(uint16_t crnti);
+void nr_DRB_preconfiguration(ue_id_t crntiMaybeUEid);
 
 #endif /* _NR_PDCP_ENTITY_H_ */
