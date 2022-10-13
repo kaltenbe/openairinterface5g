@@ -27,29 +27,33 @@ export class ErrorInterceptor implements HttpInterceptor {
       //   }
       // }),
       catchError((error: HttpErrorResponse) => {
+		let prefix:string='oai web interface [API]: ';
+		let message:string=' ';
         switch (error.status) {
           case 400:
           case 403:
+             console.error(prefix + request.method + ' ' + error.status + ' Error: ' + error.error.toString());  
+             break;         
           case 501:
           case 500:
-            this.log(YELLOW, request.method + ' ' + error.status + ' Error: ' + error.error);
-            this.dialogService.openErrorDialog(error);
-            break;
-
+             console.warn(prefix + request.method + ' ' + error.status + ' Error: ' + error.error.toString());  
+             break;
           default:
-            break;
+             console.log(prefix + request.method + ' ' + error.status + ' Error: ' + error.error.toString());          
+             break;
         }
-
-        return throwError(error.error);
+        if (error.error instanceof ErrorEvent) {
+          message=error.error.message;
+        } else {
+        // The backend returned an unsuccessful response code.
+        // The response body may contain clues as to what went wrong
+          message= JSON.stringify(error.error);
+        }
+        this.dialogService.openErrorDialog(prefix+' '+error.status, message);
+        return throwError(error);
       }),
     );
   }
 
-  private log = (color: string, txt: string) => console.log(color, '[API] ' + txt);
 }
 
-const RED = '\x1b[31m%s\x1b[0m';
-const GREEN = '\x1b[32m%s\x1b[0m';
-const YELLOW = '\x1b[33m%s\x1b[0m';
-const MAGENTA = '\x1b[35m%s\x1b[0m';
-const CYAN = '\x1b[36m%s%s\x1b[0m';

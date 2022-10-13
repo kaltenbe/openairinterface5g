@@ -489,7 +489,7 @@ export class ScopeComponent implements OnInit, OnDestroy {
   private SendScopeParams (name: string, value: string, graphid: number): number {
 	let status= 0;
       this.scopeApi.setScopeParams$({ name: name, value: value, graphid: graphid }).subscribe(
-        () => {},
+        response => {console.log(response.status);},
         err => {
 		  console.log("scope SendScopeParams: error received: " + err);
 		  this.StopScope();

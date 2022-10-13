@@ -25,22 +25,17 @@ export class DialogService {
     private _snackBar: MatSnackBar,
   ) { }
 
-  openErrorDialog(error: HttpErrorResponse): Observable<any> {
-    if (this.isDialogOpen) {
-      return of(undefined);
-    }
-    this.isDialogOpen = true;
-    return this._dialog.open(DialogComponent, {
+  openErrorDialog(title:string, message:string): void {
+    const ErrDiag = this._dialog.open(DialogComponent, {
       width: '900px',
       data: {
-        title: error.status + ' Error',
-        body: error.error,
+        title: title,
+        body: message,
       },
       panelClass: 'errRespDialog',
-    })
-    .afterClosed()
-    .pipe(tap(() => this.isDialogOpen = false));
-      
+    });
+    ErrDiag.afterClosed().subscribe(result => {
+    });
   }
 
   openCmdDialog(control: CmdCtrl, resp: IResp, title?: string): Observable<IResp> {

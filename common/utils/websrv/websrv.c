@@ -98,14 +98,14 @@ void websrv_dump_request(char *label, const struct _u_request *request)
 }
 /*-----------------------------------*/
 /* build a json body in a response */
-void websrv_jbody( struct _u_response * response, json_t *jbody) {
+void websrv_jbody( struct _u_response * response, json_t *jbody,int httpstatus) {
   websrv_printjson( (char *)__FUNCTION__ , jbody);
   int us=ulfius_add_header_to_response(response,"content-type" ,"application/json");
   if (us != U_OK){
 	  ulfius_set_string_body_response(response, 500, "Internal server error (ulfius_add_header_to_response)");
 	  LOG_E(UTIL,"[websrv] cannot set response header type ulfius error %d \n",us);
   }   
-  us=ulfius_set_json_body_response(response, 200, jbody);
+  us=ulfius_set_json_body_response(response, httpstatus, jbody);
   if (us != U_OK){
 	  ulfius_set_string_body_response(response, 500, "Internal server error (ulfius_set_json_body_response)");
 	  LOG_E(UTIL,"[websrv] cannot set body response ulfius error %d \n",us);
@@ -125,7 +125,7 @@ int websrv_string_response(char *astring, struct _u_response * response, int htt
     aline=strtok_r(NULL,"\n",&tokctx);
   }
   json_t *jbody = json_pack("{s:o}","display",jstr);
-  websrv_jbody(response,jbody);
+  websrv_jbody(response,jbody,httpstatus);
   return 0; 
 }
 
@@ -232,7 +232,7 @@ void websrv_gettbldata_response(struct _u_response * response,webdatadef_t * wda
       json_array_append_new(jdata,jline);  
     }
     json_t *jbody=json_pack("{s:[],s:{s:o,s:o}}","display","table","columns",jcols,"rows",jdata);
-    websrv_jbody(response,jbody);
+    websrv_jbody(response,jbody,200);
     telnetsrv_freetbldata(wdata);
 }
 

@@ -5,7 +5,7 @@
 export const environment = {
   production: false,
   // backend: 'localhost:8090/',
-  backend: '10.130.163.206:8090/'
+  backend: 'http://oaifh.devhost:8090/'     //define oaifh.devhost host in your linux /etc/hosts or the windows equivalent PLEASE NO HARDCODED IP HERE
 };
 
 

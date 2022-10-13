@@ -55,12 +55,7 @@ void websrv_websocket_send_scopemessage(char msg_type, char *msg_data, struct _w
 }
 
 void  websrv_scope_senddata(int numd, int dsize, websrv_scopedata_msg_t *msg) {
-/* 
 
-  for ( int i=0; i<n; i++) {  
-    msg->data_xy[2*i]=(i>(n/2))? 10 : -10;
-    msg->data_xy[(2*i)+1]= (i>(n/4))? 10 : -10; 
-  }*/
   msg->header.src=WEBSOCK_SRC_SCOPE ;
   int diff= scope_params.num_datamsg_sent;
   char strbuff[128];
@@ -114,10 +109,10 @@ int websrv_scope_manager(uint64_t lcount,websrv_params_t *websrvparams) {
 	  }
       if ( (lcount % scope_params.refrate) == 0) {        
 		  if (IS_SOFTMODEM_GNB_BIT && (scope_params.statusmask & SCOPE_STATUSMASK_STARTED)) {			 
-            phy_scope_gNB(scope_params.scopeform,  scope_params.scopedata, 1);
+            phy_scope_gNB(scope_params.scopeform,  scope_params.scopedata, scope_params.selectedTarget+1/* ue id, +1 as used in loop < limit */); 
 		  } 
 		  if (IS_SOFTMODEM_5GUE_BIT && (scope_params.statusmask & SCOPE_STATUSMASK_STARTED)) {
-            phy_scope_nrUE(scope_params.scopeform, (PHY_VARS_NR_UE *)scope_params.scopedata,  0, scope_params.selectedTarget);
+            phy_scope_nrUE(scope_params.scopeform, (PHY_VARS_NR_UE *)scope_params.scopedata, scope_params.selectedTarget /* gNB id */,0 );
 		  }      
       } 
     }
@@ -165,11 +160,13 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
 	 json_error_t jserr;
 	 json_t* jsbody = ulfius_get_json_body_request (request, &jserr);
      int httpstatus=404;
-
+     char errmsg[128];
+     
 	 if (jsbody == NULL) {
 	   LOG_W(UTIL,"cannot find json body in %s %s\n",request->http_url, jserr.text );
        httpstatus=400;	 
 	 } else {
+	   errmsg[0]=0;
 	   websrv_printjson("websrv_scope_callback_set_params: ",jsbody);
          json_t *J=json_object_get(jsbody, "name");
          const char *vname=json_string_value(J);
@@ -183,7 +180,7 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
 			   	  scope_params.num_datamsg_skipped=0; 	 
 				  websrv_scope_initdata();
                   scope_params.statusmask |= SCOPE_STATUSMASK_STARTED;
-                  scope_params.selectedTarget=0; // 1 UE to be received from GUI (for xNB scope's 
+                  scope_params.selectedTarget=1; // 1 UE to be received from GUI (for xNB scope's 
                   set_softmodem_optmask(SOFTMODEM_DOSCOPE_BIT); // to trigger data copy in scope buffers
                  }
 				 httpstatus=200;
@@ -228,7 +225,17 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
            httpstatus=200;                                 
 		 } else if (strcmp(vname,"TargetSelect") == 0) {
            scope_params.selectedTarget=strtol(vval,NULL,10);
-           httpstatus=200;   
+           if (IS_SOFTMODEM_GNB_BIT && scope_params.selectedTarget > NUMBER_OF_UE_MAX) {
+			  snprintf(errmsg,sizeof(errmsg)-1,"max UE index is %d for this gNB",NUMBER_OF_UE_MAX) ;
+			  httpstatus=500;
+			   scope_params.selectedTarget=1;
+		   } else if (IS_SOFTMODEM_5GUE_BIT && scope_params.selectedTarget > 0) {
+			  snprintf(errmsg,sizeof(errmsg)-1,"UE currently supports only one gNB") ;
+			  httpstatus=500;
+			  scope_params.selectedTarget=0;
+		   } else {
+              httpstatus=200;
+		   }   
 		 } else if (strcmp(vname,"DataAck") == 0) {
 			 if (strcasecmp(vval,"true")==0) {
                 scope_params.statusmask |= SCOPE_STATUSMASK_DATAACK;                                          
@@ -241,10 +248,14 @@ int websrv_scope_callback_set_params (const struct _u_request * request, struct 
            httpstatus=200;                                        			                 	                       			                 			 
 		 } else {
                httpstatus=500;
-               LOG_W(UTIL,"Unknown scope command: %s\n",vname );
+               snprintf(errmsg,sizeof(errmsg)-1,"Unkown scope command: %s\n",vname );
          }
-     } //sbody
-  ulfius_set_empty_body_response(response, httpstatus);
+     } //jsbody not null
+  if (httpstatus == 200) {
+    ulfius_set_empty_body_response(response, httpstatus);
+  } else {
+	 websrv_string_response(errmsg, response, httpstatus); 
+  }
   return U_CALLBACK_COMPLETE;
 }
  
@@ -293,7 +304,7 @@ int websrv_scope_callback_get_desc (const struct _u_request * request, struct _u
         json_array_append_new(jgraph,agraph);
     }
   json_t *jbody = json_pack("{s:s,s:o}","title",stitle,"graphs",jgraph);
-  websrv_jbody(response,jbody);
+  websrv_jbody(response,jbody,200);
   return U_CALLBACK_COMPLETE;
 }
  

@@ -122,8 +122,8 @@ typedef struct {
 /*------------------------------------------------------------------------------------------------*/
 /* web server utilities:                                                                          */
 
-extern void websrv_printjson(char * label, json_t *jsonobj);                     //debug:  dump a json object
-extern void websrv_jbody( struct _u_response * response, json_t *jbody);         // add a json body in a http response
+extern void websrv_printjson(char * label, json_t *jsonobj);                                    //debug:  dump a json object
+extern void websrv_jbody( struct _u_response * response, json_t *jbody,int httpstatus);         // add a json body in a http response
 
 extern void websrv_printf_start(struct _u_response * response, int buffsize );   // start a printf, lock the buffer
 extern void websrv_printf( const char *message,  ...);                           // add characters in the printf locked buffer

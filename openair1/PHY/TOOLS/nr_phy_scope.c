@@ -466,8 +466,12 @@ static void timeResponse (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
 #endif
   
   const int ant=0; // display antenna 0 for each UE
-
-  for (int ue=0; ue<nb_UEs; ue++) {
+#ifdef WEBSRVSCOPE
+  int uestart=nb_UEs-1; // web scope shows one UE signal, that can be selected from GUI
+#else
+  int uestart=0;        // xforms scope designed to display nb_UEs signals 
+#endif
+  for (int ue=uestart; ue<nb_UEs; ue++) {
     if ( p->gNB->pusch_vars && p->gNB->pusch_vars[ue] &&
          p->gNB->pusch_vars[ue]->ul_ch_estimates_time &&
          p->gNB->pusch_vars[ue]->ul_ch_estimates_time[ant] ) {
@@ -513,8 +517,12 @@ static void frequencyResponse (OAIgraph_t *graph, PHY_VARS_gNB *phy_vars_gnb, RU
 static void puschLLR (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
   //int Qm = 2;
   int coded_bits_per_codeword =3*8*6144+12; // (8*((3*8*6144)+12)); // frame_parms->N_RB_UL*12*Qm*frame_parms->symbols_per_tti;
- 
-  for (int ue=0; ue<nb_UEs; ue++) {
+#ifdef WEBSRVSCOPE
+  int uestart=nb_UEs-1; // web scope shows one UE signal, that can be selected from GUI
+#else
+  int uestart=0;        // xforms scope designed to display nb_UEs signals 
+#endif 
+  for (int ue=uestart; ue<nb_UEs; ue++) {
     if ( p->gNB->pusch_vars &&
          p->gNB->pusch_vars[ue] &&
          p->gNB->pusch_vars[ue]->llr ) {
@@ -539,7 +547,12 @@ static void puschIQ (OAIgraph_t *graph, scopeData_t *p, int nb_UEs) {
   NR_DL_FRAME_PARMS *frame_parms=&p->gNB->frame_parms;
   int sz=frame_parms->N_RB_UL*12*frame_parms->symbols_per_slot;
   int newsz=sz;
-  for (int ue=0; ue<nb_UEs; ue++) {
+#ifdef WEBSRVSCOPE
+  int uestart=nb_UEs-1; // web scope shows one UE signal, that can be selected from GUI
+#else
+  int uestart=0;        // xforms scope designed to display nb_UEs signals 
+#endif
+  for (int ue=uestart; ue<nb_UEs; ue++) {
     if ( p->gNB->pusch_vars &&
          p->gNB->pusch_vars[ue] &&
          p->gNB->pusch_vars[ue]->rxdataF_comp &&

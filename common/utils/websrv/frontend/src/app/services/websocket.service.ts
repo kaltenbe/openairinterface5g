@@ -35,7 +35,7 @@ export class WebSocketService {
 
     constructor() {
         this.subject$ = webSocket<Message>({
-            url: 'ws://' + environment.backend + 'softscope',
+            url: environment.backend.replace("http","ws") + 'softscope',
             openObserver: { next: () => { console.log('WS connection established') } },
             closeObserver: { next: () => { console.log('WS connextion closed') } },
             serializer: msg => serialize(msg),

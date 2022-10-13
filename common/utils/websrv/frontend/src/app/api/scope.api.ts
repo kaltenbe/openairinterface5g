@@ -41,8 +41,8 @@ const route = 'oaisoftmodem/scopectrl/';
 export class ScopeApi {
     constructor(private httpClient: HttpClient) { }
 
-    public getScopeInfos$ = () => this.httpClient.get<IScopeDesc>('http://' + environment.backend + route);
+    public getScopeInfos$ = () => this.httpClient.get<IScopeDesc>(environment.backend + route);
 
-    public setScopeParams$ = (cmd: IScopeCmd) => this.httpClient.post('http://' + environment.backend + route, cmd);
+    public setScopeParams$ = (cmd: IScopeCmd) => this.httpClient.post(environment.backend + route, cmd,{observe: 'response'});
 
 }

@@ -17,7 +17,7 @@ export class DownloadService {
     const token = 'my JWT';
     const headers = new HttpHeaders().set('authorization','Bearer '+token);
     const postparams = new HttpParams().set('fname',url);
-    this.http.post(environment.backend + route + '/file',  postparams, {headers, responseType: 'blob' as 'json'}).subscribe(
+    this.http.post( environment.backend + route + '/file',  postparams, {headers, responseType: 'blob' as 'json'}).subscribe(
         (response: any) =>{
             let dataType = response.type;
             let binaryData = [];
