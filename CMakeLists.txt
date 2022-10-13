@@ -1997,7 +1997,7 @@ add_library(L2
   ${MCE_APP_SRC}
   )
 add_dependencies(L2 rrc_flag m2_flag m3_flag)
-target_link_libraries(L2 PRIVATE F1AP X2AP_ENB)
+target_link_libraries(L2 PRIVATE F1AP X2AP_ENB S1AP_ENB)
 
 add_library(MAC_NR
   ${MAC_NR_SRC}
@@ -2017,8 +2017,8 @@ add_library(L2_NR
   ${GNB_APP_SRC}
   )
 
-add_dependencies(L2_NR rrc_flag nr_rrc_flag s1ap_flag)
-target_link_libraries(L2_NR PRIVATE F1AP X2AP_ENB)
+#add_dependencies(L2_NR rrc_flag nr_rrc_flag)
+target_link_libraries(L2_NR PRIVATE F1AP X2AP_ENB S1AP_ENB)
 
 add_library(L2_LTE_NR
   ${L2_RRC_SRC}
@@ -2027,8 +2027,7 @@ add_library(L2_LTE_NR
   ${MCE_APP_SRC}
 )
 
-add_dependencies(L2_NR rrc_flag nr_rrc_flag x2_flag)
-target_link_libraries(L2_LTE_NR PRIVATE F1AP)
+target_link_libraries(L2_LTE_NR PRIVATE F1AP S1AP_ENB)
 
 add_library(L2_UE
   ${L2_SRC_UE}
@@ -2644,7 +2643,7 @@ add_dependencies(ocp-enb rrc_flag oai_iqplayer coding params_libconfig rfsimulat
 target_link_libraries (ocp-enb
   -Wl,--start-group
 
-  RRC_LIB NR_RRC_LIB S1AP_LIB F1AP M2AP_LIB M2AP_ENB X2AP_ENB M3AP_LIB M3AP_ENB GTPV1U SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_LIB SCHED_RU_LIB
+  RRC_LIB NR_RRC_LIB F1AP M2AP_LIB M2AP_ENB X2AP_ENB M3AP_LIB M3AP_ENB GTPV1U SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_LIB SCHED_RU_LIB
   PHY_COMMON PHY PHY_RU L2 L2_LTE NFAPI_COMMON_LIB NFAPI_LIB MISC_NFAPI_LTE_LIB NFAPI_VNF_LIB NFAPI_PNF_LIB NFAPI_USER_LIB SIMU_COMMON
   ${RAL_LIB} ${NAS_UE_LIB} ITTI ${FLPT_MSG_LIB}  ${FLEXRAN_AGENT_LIB} ${FSPT_MSG_LIB}
   -Wl,--end-group z dl)
@@ -2701,7 +2700,7 @@ if (NOT ${NOS1})
 endif()
 target_link_libraries (lte-uesoftmodem
   -Wl,--start-group
-  RRC_LIB NR_RRC_LIB S1AP_LIB X2AP_ENB M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB
+  RRC_LIB NR_RRC_LIB X2AP_ENB M2AP_LIB M2AP_ENB M3AP_LIB M3AP_ENB
   SECU_CN SECU_OSA UTIL HASHTABLE SCTP_CLIENT MME_APP SCHED_RU_LIB SCHED_UE_LIB PHY_COMMON
   PHY_UE PHY_RU L2_UE L2_LTE SIMU_COMMON SIMU NFAPI_COMMON_LIB NFAPI_LIB NFAPI_PNF_LIB NFAPI_USER_LIB MISC_NFAPI_LTE_LIB
   ${RAL_LIB} ${NAS_UE_LIB} ITTI ${FLPT_MSG_LIB}  ${ATLAS_LIBRARIES}
