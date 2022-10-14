@@ -828,8 +828,7 @@ class RANManagement():
 		gnb_markers ={'SgNBReleaseRequestAcknowledge': [],'FAILURE': [], 'scgFailureInformationNR-r15': [], 'SgNBReleaseRequest': [], 'Detected UL Failure on PUSCH':[]}
 		nodeB_prefix_found = False
 		RealTimeProcessingIssue = False
-		dlsch_checker_status = []
-		ulsch_checker_status = []
+		retx_status = {}
 		nrRrcRcfgComplete = 0
 		harqFeedbackPast = 0
 		showedByeMsg = False # last line is Bye. -> stopped properly
@@ -1168,12 +1167,11 @@ class RANManagement():
 					logging.debug(dlulstat[key])
 				htmleNBFailureMsg += statMsg
 
+				retx_status[ue] = {}
 				dlcheckers = [] if 'd_retx_th' not in checkers else checkers['d_retx_th']
-				dlsch_checker_status = self._analyzeUeRetx(dlulstat['dlsch_rounds'], dlcheckers, r'^.*dlsch_rounds\s+(\d+)\/(\d+)\/(\d+)\/(\d+),\s+dlsch_errors\s+(\d+)')
-				print(dlsch_checker_status)
+				retx_status[ue]['dl'] = self._analyzeUeRetx(dlulstat['dlsch_rounds'], dlcheckers, r'^.*dlsch_rounds\s+(\d+)\/(\d+)\/(\d+)\/(\d+),\s+dlsch_errors\s+(\d+)')
 				ulcheckers = [] if 'u_retx_th' not in checkers else checkers['u_retx_th']
-				ulsch_checker_status = self._analyzeUeRetx(dlulstat['ulsch_rounds'], ulcheckers, r'^.*ulsch_rounds\s+(\d+)\/(\d+)\/(\d+)\/(\d+),\s+.*,\s+ulsch_errors\s+(\d+)')
-				print(ulsch_checker_status)
+				retx_status[ue]['ul'] = self._analyzeUeRetx(dlulstat['ulsch_rounds'], ulcheckers, r'^.*ulsch_rounds\s+(\d+)\/(\d+)\/(\d+)\/(\d+),\s+.*,\s+ulsch_errors\s+(\d+)')
 
 
 			#real time statistics
@@ -1234,25 +1232,15 @@ class RANManagement():
 			logging.debug(statMsg)
 			htmleNBFailureMsg += htmlMsg			
 
-		if False in dlsch_checker_status:
-			retx_checker_status_str = ''
-			for status in dlsch_checker_status : retx_checker_status_str+=str(status)+ ' '
-			logging.debug('\u001B[1;37;41m ' + nodeB_prefix + 'NB ended with too many retransmissions / errors issue in DL ! \u001B[0m')
-			logging.debug('\u001B[1;37;41m Status for DL retx: ' + retx_checker_status_str + ' (thresholds ' + str(checkers['d_retx_th']) + ')\u001B[0m')
-			htmleNBFailureMsg += 'Fail due to retransmissions / errors issue in DL, status : ' + retx_checker_status_str + '\n'
-			global_status = CONST.ENB_RETX_ISSUE
-		else:
-			logging.debug(f'dlsch_checker_status = {dlsch_checker_status}')
-
-		if False in ulsch_checker_status:
-			retx_checker_status_str = ''
-			for status in ulsch_checker_status : retx_checker_status_str+=str(status)+ ' '
-			logging.debug('\u001B[1;37;41m ' + nodeB_prefix + 'NB ended with too many retransmissions / errors issue in UL ! \u001B[0m')
-			logging.debug('\u001B[1;37;41m Status for UL retx: ' + retx_checker_status_str + ' (thresholds ' + str(checkers['u_retx_th']) + ')\u001B[0m')
-			htmleNBFailureMsg += 'Fail due to retransmissions / errors issue in UL, status : ' + retx_checker_status_str + '\n'
-			global_status = CONST.ENB_RETX_ISSUE
-		else:
-			logging.debug(f'ulsch_checker_status = {ulsch_checker_status}')
+		for ue in retx_status:
+			msg = f"retransmissions for UE {ue}: DL {retx_status[ue]['dl']} UL {retx_status[ue]['ul']}"
+			if False in retx_status[ue]['dl'] or False in retx_status[ue]['ul']:
+				msg = 'Failure: ' + msg
+				logging.error(f'\u001B[1;37;41m {msg}\u001B[0m')
+				htmleNBFailureMsg += f'{msg}\n'
+				global_status = CONST.ENB_RETX_ISSUE
+			else:
+				logging.debug(msg)
 
 		if RealTimeProcessingIssue:
 			logging.debug('\u001B[1;37;41m ' + nodeB_prefix + 'NB ended with real time processing issue! \u001B[0m')
