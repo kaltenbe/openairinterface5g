@@ -131,23 +131,13 @@ export class CommandsComponent {
       switchMap(results => {
         if (!results[0])
           return of(null);
-        if (control.isResUpdatable())
-          control.ResUpdTimer = timer(2000, 1000);
+ 
         return this.execCmd$(control);
       }))
       .subscribe();
   }
 
   private execCmd$(control: CmdCtrl) {
-    if (control.isResUpdatable() && control.ResUpdTimer) {
-      if (!(control.ResUpdTimerSubscriber)) {
-        control.ResUpdTimerSubscriber = control.ResUpdTimer.subscribe(iteration => {
-          console.log("Update timer fired" + iteration);
-          if (control.updbtnname === "Stop update")
-            this.execCmd$(control);
-        });
-      }
-    }
 
     this.commandsApi.runCommand$(control!.api(), this.selectedModule!.name).subscribe(resp => {
       if (resp.display[0]) this.dialogService.updateCmdDialog(control, resp, 'cmd ' + control.nameFC.value + ' response:')
@@ -183,7 +173,23 @@ export class CommandsComponent {
       this.rows$.next(controls)
     },
       err => console.error('execCmd error: ' + err),
-      () => console.log('execCmd completed: '),
+      () => 
+         { 
+		 console.log('execCmd completed: ');
+         if (control.isResUpdatable() ) {       
+            if (!(control.ResUpdTimerSubscriber) || control.ResUpdTimerSubscriber.closed) {
+			  if ( !control.ResUpdTimer)
+			    control.ResUpdTimer = timer(1000, 1000);
+              control.ResUpdTimerSubscriber = control.ResUpdTimer.subscribe (
+                iteration => {
+                console.log("Update timer fired" + iteration);
+                if (control.updbtnname === "Stop update")
+                  this.execCmd$(control);
+                }
+              );
+            }
+          }
+		},
     ) // map resp
 
 

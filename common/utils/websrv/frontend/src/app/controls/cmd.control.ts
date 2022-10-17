@@ -60,14 +60,12 @@ export class CmdCtrl extends UntypedFormGroup {
 
   stopUpdate() {
     if (this.ResUpdTimerSubscriber) {
-      this.ResUpdTimerSubscriber.unsubscribe();
       this.updbtnname = "Start update"
     }
   }
 
   startUpdate() {
     if (this.ResUpdTimerSubscriber && this.ResUpdTimer) {
-      this.ResUpdTimerSubscriber = this.ResUpdTimer.subscribe();
       this.updbtnname = "Stop update"
     }
   }

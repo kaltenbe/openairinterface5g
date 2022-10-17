@@ -64,6 +64,10 @@ export class DialogService {
     this.cmdDialogRef.afterClosed().subscribe(( ) => {
       console.log('The dialog was closed');
       this.isDialogOpen = false;
+      control.stopUpdate();
+      if (control.ResUpdTimerSubscriber){
+        control.ResUpdTimerSubscriber.unsubscribe();
+      }
     });
 
     return of(resp)
