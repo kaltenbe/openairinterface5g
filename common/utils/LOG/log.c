@@ -84,10 +84,9 @@ mapping log_options[] = {
   {"function", FLAG_FUNCT},
   {"time",     FLAG_TIME},
   {"thread_id", FLAG_THREAD_ID},
-  {"real_time", FLAG_REAL_TIME},
+  {"wall_clock", FLAG_REAL_TIME},
   {NULL,-1}
 };
-
 
 mapping log_maskmap[] = LOG_MASKMAP_INIT;
 
@@ -555,10 +554,15 @@ static inline int log_header(log_component_t *c,
   else
     l[0] = 0;
 
+  AssertFatal(!((flag & FLAG_TIME) && (flag & FLAG_REAL_TIME)), 
+		   "Invalid log option time & wall_clock both set\n");
+
+  // output time information
   char timeString[32];
-  if ( flag & FLAG_TIME ) {
+  if ((flag & FLAG_TIME) || (flag & FLAG_REAL_TIME)) {
     struct timespec t;
-    if (clock_gettime(CLOCK_MONOTONIC, &t) == -1)
+    const clockid_t clock = flag & FLAG_TIME ? CLOCK_MONOTONIC : CLOCK_REALTIME;
+    if (clock_gettime(clock, &t) == -1)
         abort();
     snprintf(timeString, sizeof(timeString), "%lu.%06lu ",
              t.tv_sec,
@@ -575,21 +579,9 @@ static inline int log_header(log_component_t *c,
   }
 
 
-  char realTimeString[32];
-   if ( flag & FLAG_REAL_TIME ) {
-    struct timespec t;
-    if (clock_gettime(CLOCK_REALTIME, &t) == -1)
-        abort();
-    snprintf(realTimeString, sizeof(realTimeString), "%lu.%06lu ",
-             t.tv_sec,
-             t.tv_nsec / 1000);
-  } else {
-    realTimeString[0] = 0;
-  }
-  return snprintf(log_buffer, buffsize, "%s%s%s%s[%s] %c %s%s",
+  return snprintf(log_buffer, buffsize, "%s%s%s[%s] %c %s%s",
 		   flag & FLAG_NOCOLOR ? "" : log_level_highlight_start[level],
 		   timeString,
-		   realTimeString,
 		   threadIdString,
 		   c->name,
 		   flag & FLAG_LEVEL ? g_log->level2string[level] : ' ',
