@@ -58,7 +58,7 @@
   {"listenport",                   "<local port>\n",                0,                 uptr:&(websrvparams.listenport),      defuintval:8090,                TYPE_UINT,      0 },
   {"priority",                     "<scheduling policy (0-99)\n",   0,                 iptr:&websrvparams.priority,          defuintval:0,                   TYPE_INT,       0 },
   {"debug",                        "<debug level>\n",               0,                 uptr:&websrvparams.dbglvl,            defuintval:0,                   TYPE_UINT,      0 },
-  {"url",                          "<server url>\n",                0,                 strptr:&websrvparams.url,             defstrval:"index.html",         TYPE_STRING,    0 }, 
+  {"url",                          "<server url>\n",                0,                 strptr:&websrvparams.url,             defstrval:"websrv/index.html",         TYPE_STRING,    0 }, 
   {"cert",                         "<cert file>\n",                 0,                 strptr:&websrvparams.certfile,        defstrval:NULL,                 TYPE_STRING,    0 }, 
   {"key",                          "<key file>\n",                  0,                 strptr:&websrvparams.keyfile,         defstrval:NULL,                 TYPE_STRING,    0 },
   {"rootca",                       "<root ca file>\n",              0,                 strptr:&websrvparams.rootcafile,      defstrval:NULL,                 TYPE_STRING,    0 },
@@ -72,9 +72,11 @@ int websrv_add_endpoint( char **http_method, int num_method, const char * url_pr
 void register_module_endpoints(cmdparser_t *module) ;
                          
 void websrv_printjson(char * label, json_t *jsonobj){
-	char *jstr = json_dumps(jsonobj,0);
-	LOG_I(UTIL,"[websrv] %s:%s\n", label, (jstr==NULL)?"??\n":jstr);
-    free(jstr);
+	if (websrvparams.dbglvl>0) {
+	  char *jstr = json_dumps(jsonobj,0);
+	  LOG_I(UTIL,"[websrv] %s:%s\n", label, (jstr==NULL)?"??\n":jstr);
+      free(jstr);
+  }
 }
 void websrv_gettbldata_response(struct _u_response * response,webdatadef_t * wdata) ;
 int websrv_callback_get_softmodemcmd(const struct _u_request * request, struct _u_response * response, void * user_data);
