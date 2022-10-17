@@ -59,7 +59,6 @@
 /** @addtogroup _USRP_PHY_RF_INTERFACE_
  * @{
  */
-int gpio789=0;
 extern int usrp_tx_thread;
 
 
@@ -88,6 +87,9 @@ typedef struct {
   //! TX forward samples. We use usrp_time_offset to get this value
   int tx_forward_nsamps; //166 for 20Mhz
 
+  //! gpio bank to use
+  std::string gpio_bank;
+  
   // --------------------------------
   // Debug and output control
   // --------------------------------
@@ -258,10 +260,10 @@ static int sync_to_gps(openair0_device *device) {
   return EXIT_SUCCESS;
 }
 
-#define ATR_MASK 0x7f
+#define ATR_MASK 0x7f //pins controlled by ATR
 #define ATR_RX   0x50 //data[4] and data[6]
 #define ATR_XX   0x20 //data[5]
-#define MAN_MASK ATR_MASK^0xFFF
+#define MAN_MASK ATR_MASK^0xFFF //manually controlled pins 
 
 /*! \brief Called to start the USRP transceiver. Return 0 if OK, < 0 if error
     @param device pointer to the device structure specific to the RF hardware target
@@ -269,20 +271,40 @@ static int sync_to_gps(openair0_device *device) {
 static int trx_usrp_start(openair0_device *device) {
   usrp_state_t *s = (usrp_state_t *)device->priv;
 
-  if (device->type != USRP_X400_DEV) {
-    // setup GPIO for TDD, GPIO(4) = ATR_RX
-    //set data direction register (DDR) to output
-    s->usrp->set_gpio_attr("FP0", "DDR", 0xfff, 0xfff);
-    //set bits to be controlled automatically by ATR 
-    s->usrp->set_gpio_attr("FP0", "CTRL", ATR_MASK, 0xfff);
-    //set bits to 1 when the radio is only receiving (ATR_RX)
-    s->usrp->set_gpio_attr("FP0", "ATR_RX", ATR_RX, ATR_MASK);
-    // set bits to 1 when the radio is transmitting and receiveing (ATR_XX)
-    // (we use full duplex here, because our RX is on all the time - this might need to change later)
-    s->usrp->set_gpio_attr("FP0", "ATR_XX", ATR_XX, ATR_MASK);
-    // set all other pins to manual
-    s->usrp->set_gpio_attr("FP0", "OUT", MAN_MASK, 0xfff);
+  std::vector<std::string> gpio_banks = s->usrp->get_gpio_banks(0); 
+  s->gpio_bank = gpio_banks[0];
+
+  if (device->type == USRP_X400_DEV) {
+    // Set every pin on GPIO0 to be controlled by DB0_RF0
+    std::vector<std::string> sxx = {
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+				    "DB0_RF0",
+    };
+    s->usrp->set_gpio_src(s->gpio_bank, sxx);
   }
+
+  // setup GPIO for TDD, GPIO(4) = ATR_RX
+  //set data direction register (DDR) to output
+  s->usrp->set_gpio_attr(s->gpio_bank, "DDR", 0xfff, 0xfff);
+  //set bits to be controlled automatically by ATR 
+  s->usrp->set_gpio_attr(s->gpio_bank, "CTRL", ATR_MASK, 0xfff);
+  //set bits to 1 when the radio is only receiving (ATR_RX)
+  s->usrp->set_gpio_attr(s->gpio_bank, "ATR_RX", ATR_RX, ATR_MASK);
+  // set bits to 1 when the radio is transmitting and receiveing (ATR_XX)
+  // (we use full duplex here, because our RX is on all the time - this might need to change later)
+  s->usrp->set_gpio_attr(s->gpio_bank, "ATR_XX", ATR_XX, ATR_MASK);
+  // set all other pins to manual
+  s->usrp->set_gpio_attr(s->gpio_bank, "OUT", MAN_MASK, 0xfff);
   
   s->wait_for_first_pps = 1;
   s->rx_count = 0;
@@ -458,7 +480,7 @@ VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_BEAM_SWITCHI
     if (flags_gpio&0x1000) {
       // push GPIO bits 
       s->usrp->set_command_time(s->tx_md.time_spec);
-      s->usrp->set_gpio_attr("FP0", "OUT", flags_gpio, MAN_MASK);
+      s->usrp->set_gpio_attr(s->gpio_bank, "OUT", flags_gpio, MAN_MASK);
       s->usrp->clear_command_time();
     }
 VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_BEAM_SWITCHING_GPIO,0);
@@ -493,7 +515,7 @@ VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_BEAM_SWITCHI
     write_package[end].cc           = cc;
     write_package[end].first_packet = first_packet_state;
     write_package[end].last_packet  = last_packet_state;
-    write_package[end].flags_msb    = flags_msb;
+    write_package[end].flags_gpio    = flags_gpio;
     for (int i = 0; i < cc; i++)
       write_package[end].buff[i]    = buff[i];
     write_thread->count_write++;
@@ -530,7 +552,7 @@ void *trx_usrp_write_thread(void * arg){
   int                cc;
   signed char        first_packet;
   signed char        last_packet;
-  int                flags_msb;
+  int                flags_gpio;
 
   while(1){
     pthread_mutex_lock(&write_thread->mutex_write);
@@ -548,7 +570,7 @@ void *trx_usrp_write_thread(void * arg){
     cc           = write_package[start].cc;
     first_packet = write_package[start].first_packet;
     last_packet  = write_package[start].last_packet;
-    flags_msb    = write_package[start].flags_msb;
+    flags_gpio    = write_package[start].flags_gpio;
     write_thread->start = (write_thread->start + 1)% MAX_WRITE_THREAD_PACKAGE;
     write_thread->count_write--;
     pthread_mutex_unlock(&write_thread->mutex_write);
@@ -593,11 +615,10 @@ void *trx_usrp_write_thread(void * arg){
     s->tx_count++;
 
     // bit 3 enables gpio (for backward compatibility)
-    if (flags_msb&8) {
-      // push GPIO bits 7-9 from flags_msb
-      int gpio789=(flags_msb&7)<<7;
+    if (flags_gpio&0x1000) {
+      // push GPIO bits 
       s->usrp->set_command_time(s->tx_md.time_spec);
-      s->usrp->set_gpio_attr("FP0", "OUT", gpio789, 0x380);
+      s->usrp->set_gpio_attr(s->gpio_bank, "OUT", flags_gpio, MAN_MASK);
       s->usrp->clear_command_time();
     }
 
@@ -744,11 +765,6 @@ static int trx_usrp_read(openair0_device *device, openair0_timestamp *ptimestamp
   s->rx_timestamp = s->rx_md.time_spec.to_ticks(s->sample_rate);
   *ptimestamp = s->rx_timestamp;
 
-  // push GPIO bits 7-9 from flags_msb
-   /*s->usrp->set_command_time(uhd::time_spec_t::from_ticks((s->rx_timestamp+(2*nsamps)),s->sample_rate));
-   s->usrp->set_gpio_attr("FP0", "OUT", gpio789<<7, 0x380);
-   s->usrp->clear_command_time();
-   gpio789 = (gpio789+1)&7;*/
   recplay_state_t *recPlay=device->recplay_state;
 
   if ( recPlay != NULL) { // record mode
