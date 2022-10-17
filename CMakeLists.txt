@@ -206,18 +206,13 @@ if(EXISTS "/proc/cpuinfo")
 else()
   message(WARNING "did not find /proc/cpuinfo -- not setting any x86-specific compilation variables")
 endif()
-if(DEFINED CPUFLAGS AND CPUFLAGS MATCHES "avx512")
-  set(AUTODETECT_AVX512 ON)
-else()
-  set(AUTODETECT_AVX512 OFF)
-endif()
+
+eval_boolean(AUTODETECT_AVX512 DEFINED CPUFLAGS AND CPUFLAGS MATCHES "avx512")
 add_boolean_option(AVX512 ${AUTODETECT_AVX512} "Whether AVX512 intrinsics is available on the host processor")
-if(DEFINED CPUFLAGS AND CPUFLAGS MATCHES "avx2")
-  set(AUTODETECT_AVX2 ON)
-else()
-  set(AUTODETECT_AVX2 OFF)
-endif()
+
+eval_boolean(AUTODETECT_AVX2 DEFINED CPUFLAGS AND CPUFLAGS MATCHES "avx2")
 add_boolean_option(AVX2 ${AUTODETECT_AVX2} "Whether AVX2 intrinsics is available on the host processor")
+
 if(${CPUARCH} STREQUAL "x86_64" AND DEFINED CPUFLAGS)
   # The following intrinsics are assumed to be available on any x86 system
   # (avx, f16c, fma, gnfi, mmx, pclmul, sse, sse2, sse3, xop)
