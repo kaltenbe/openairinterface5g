@@ -620,6 +620,9 @@ int init_lte_ue_signal(PHY_VARS_UE *ue,
   AssertFatal( ue->n_connected_eNB <= NUMBER_OF_CONNECTED_eNB_MAX, "n_connected_eNB is too large" );
   // init phy_vars_ue
 
+  ue->nprs_toa_samples = 0xffff;
+  ue->nprs_peak_power = 0;
+
   for (i=0; i<4; i++) {
     ue->rx_gain_max[i] = 135;
     ue->rx_gain_med[i] = 128;

@@ -11,6 +11,7 @@
 #include <sched.h>
 #include "assertions.h"
 #include "PHY/defs_UE.h"
+#include "PHY/gold.h"
 #include "PHY/phy_extern_ue.h"
 //#include "executables/nr-uesoftmodem.h"
 #include "executables/lte-softmodem.h"
@@ -43,6 +44,10 @@
 #define DLSCH_RB_ALLOC_12 0x0aaa  // skip DC RB (total 23/25 RBs)
 
 #define NS_PER_SLOT 500000
+#define NPRS_N_RB_MAX_DL 110
+#define NPRS_NSC 12
+#define NPRS_INVALID_TOA 0xffff
+#define NPRS_PEAK_TO_AVG_THRESHOLD 10
 
 static const char mode_string[4][20] = {"NOT SYNCHED","PRACH","RAR","PUSCH"};
 
@@ -50,6 +55,137 @@ void Msg1_transmitted(module_id_t module_idP, uint8_t CC_id, frame_t frameP, uin
 void Msg3_transmitted(module_id_t module_idP, uint8_t CC_id, frame_t frameP, uint8_t eNB_id);
 
 extern uint64_t downlink_frequency[MAX_NUM_CCs][4];
+
+int32_t ue_nprs_procedures(PHY_VARS_UE *ue, const UE_rxtx_proc_t *proc, uint16_t nid_nprs, uint32_t peak_to_avg_threshold)
+{
+  LTE_DL_FRAME_PARMS *fp = &ue->frame_parms;
+  const uint16_t subframe = proc->subframe_rx;
+  ue->nprs_toa_samples = NPRS_INVALID_TOA;
+  ue->nprs_peak_power = 0;
+
+  if (subframe >= LTE_NUMBER_OF_SUBFRAMES_PER_FRAME || nid_nprs > 4095 || fp->first_carrier_offset < NPRS_NSC
+      || fp->nb_antennas_rx == 0) {
+    LOG_E(PHY,
+          "ue_nprs_procedures: invalid configuration (subframe %u, nid_nprs %u, first carrier %u, RX antennas %u)\n",
+          (unsigned)subframe,
+          (unsigned)nid_nprs,
+          (unsigned)fp->first_carrier_offset,
+          (unsigned)fp->nb_antennas_rx);
+    return NPRS_INVALID_TOA;
+  }
+
+  const uint16_t fft_size = fp->ofdm_symbol_size;
+  const uint16_t symbols_per_slot = fp->symbols_per_tti >> 1;
+  const uint16_t nprs_prb_offset = fp->first_carrier_offset - NPRS_NSC;
+  const uint16_t vshift = nid_nprs % 6;
+  const uint8_t thread_id = ue->current_thread_id[subframe];
+  int32_t **rxdataF = ue->common_vars.common_vars_rx_data_per_thread[thread_id].rxdataF;
+  int64_t ch_acc_re[fp->nb_antennas_rx][NPRS_NSC];
+  int64_t ch_acc_im[fp->nb_antennas_rx][NPRS_NSC];
+  uint16_t observations[NPRS_NSC];
+  c16_t ch_freq[fp->nb_antennas_rx][fft_size] __attribute__((aligned(32)));
+  c16_t ch_time[fp->nb_antennas_rx][fft_size] __attribute__((aligned(32)));
+  const int16_t qpsk_amp = ONE_OVER_SQRT2_Q15;
+  const c16_t qpsk[4] = {{qpsk_amp, qpsk_amp}, {-qpsk_amp, qpsk_amp}, {qpsk_amp, -qpsk_amp}, {-qpsk_amp, -qpsk_amp}};
+
+  memset(ch_acc_re, 0, sizeof(ch_acc_re));
+  memset(ch_acc_im, 0, sizeof(ch_acc_im));
+  memset(observations, 0, sizeof(observations));
+  memset(ch_freq, 0, sizeof(ch_freq));
+  memset(ch_time, 0, sizeof(ch_time));
+
+  for (uint16_t slot_in_subframe = 0; slot_in_subframe < 2; slot_in_subframe++) {
+    const uint16_t ns = (subframe << 1) + slot_in_subframe;
+
+    for (uint16_t l = 0; l < symbols_per_slot; l++) {
+      const uint16_t symbol = slot_in_subframe * symbols_per_slot + l;
+      const uint32_t symbol_offset = symbol * fft_size;
+      const uint32_t cinit = (1U << 10) * (7 * (ns + 1) + l + 1) * (2 * nid_nprs + 1) + 2 * nid_nprs + (1 - fp->Ncp);
+      uint32_t x1 = 0;
+      uint32_t x2 = cinit;
+      uint32_t gold = 0;
+
+      for (uint16_t word = 0; word <= ((NPRS_N_RB_MAX_DL - 1) >> 4); word++)
+        gold = gold_generic(&x1, &x2, word == 0);
+
+      for (uint16_t m = 0; m < 2; m++) {
+        const uint16_t k = 6 * m + ((vshift + l) % 6);
+        const uint16_t mprime = m + NPRS_N_RB_MAX_DL - 1;
+        const uint8_t qpsk_index = (gold >> (2 * (mprime & 0xf))) & 3;
+        const c16_t pilot = qpsk[qpsk_index];
+        const uint32_t re_offset = symbol_offset + nprs_prb_offset + k;
+
+        for (uint8_t aarx = 0; aarx < fp->nb_antennas_rx; aarx++) {
+          const c16_t received = ((c16_t *)rxdataF[aarx])[re_offset];
+          const c16_t estimate = c16MulConjShift(pilot, received, 15);
+          ch_acc_re[aarx][k] += estimate.r;
+          ch_acc_im[aarx][k] += estimate.i;
+        }
+        observations[k]++;
+      }
+    }
+  }
+
+  for (uint8_t aarx = 0; aarx < fp->nb_antennas_rx; aarx++) {
+    for (uint16_t k = 0; k < NPRS_NSC; k++) {
+      if (observations[k] == 0) {
+        LOG_E(PHY, "ue_nprs_procedures: no NPRS observation for subcarrier %u\n", (unsigned)k);
+        return NPRS_INVALID_TOA;
+      }
+      ch_freq[aarx][nprs_prb_offset + k].r = ch_acc_re[aarx][k] / observations[k];
+      ch_freq[aarx][nprs_prb_offset + k].i = ch_acc_im[aarx][k] / observations[k];
+    }
+
+    idft(get_idft(fft_size), (int16_t *)ch_freq[aarx], (int16_t *)ch_time[aarx], 1);
+  }
+
+  uint64_t total_power = 0;
+  uint64_t peak_power = 0;
+  uint16_t peak_index = 0;
+  for (uint16_t sample = 0; sample < fft_size; sample++) {
+    uint64_t sample_power = 0;
+    for (uint8_t aarx = 0; aarx < fp->nb_antennas_rx; aarx++) {
+      const int32_t re = ch_time[aarx][sample].r;
+      const int32_t im = ch_time[aarx][sample].i;
+      sample_power += (int64_t)re * re + (int64_t)im * im;
+    }
+
+    total_power += sample_power;
+    if (sample_power > peak_power) {
+      peak_power = sample_power;
+      peak_index = sample;
+    }
+  }
+
+  ue->nprs_peak_power = peak_power;
+  const uint64_t mean_power = total_power / fft_size;
+  const uint64_t peak_to_avg = mean_power > 0 ? peak_power / mean_power : 0;
+  if (mean_power == 0 || peak_to_avg < peak_to_avg_threshold) {
+    LOG_D(PHY,
+          "NPRS detection failed: frame %d subframe %u, peak %llu, mean %llu, ratio %llu, threshold %u\n",
+          proc->frame_rx,
+          (unsigned)subframe,
+          (unsigned long long)peak_power,
+          (unsigned long long)mean_power,
+          (unsigned long long)peak_to_avg,
+          (unsigned)peak_to_avg_threshold);
+    return NPRS_INVALID_TOA;
+  }
+
+  int32_t relative_toa = peak_index;
+  if (peak_index >= (fft_size >> 1))
+    relative_toa -= fft_size;
+
+  ue->nprs_toa_samples = relative_toa;
+  LOG_D(PHY,
+        "NPRS ToA: frame %d subframe %u, relative ToA %d samples, peak %llu, peak/average %llu\n",
+        proc->frame_rx,
+        (unsigned)subframe,
+        relative_toa,
+        (unsigned long long)peak_power,
+        (unsigned long long)peak_to_avg);
+  return relative_toa;
+}
 
 void get_dumpparam(PHY_VARS_UE *ue,
                    UE_rxtx_proc_t *proc,
@@ -4583,6 +4719,12 @@ int phy_procedures_UE_RX(PHY_VARS_UE *ue,
       } // for l=1..l2
 
       ue_measurement_procedures(l-1,ue,proc,eNB_id,1+(subframe_rx<<1),abstraction_flag,mode);
+
+      if (abstraction_flag == 0 && subframe_select(&ue->frame_parms, subframe_rx) == SF_DL) {
+        const uint16_t nid_nprs = 0;
+        ue_nprs_procedures(ue, proc, nid_nprs, NPRS_PEAK_TO_AVG_THRESHOLD);
+      }
+
       // do first symbol of next downlink subframe for channel estimation
       int next_subframe_rx = (1+subframe_rx)%10;
 

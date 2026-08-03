@@ -671,6 +671,8 @@ typedef struct {
   uint8_t               decode_MIB;
   int              rx_offset; /// Timing offset
   int              rx_offset_diff; /// Timing adjustment for ofdm symbol0 on HW USRP
+  int32_t          nprs_toa_samples; /// Relative NPRS ToA, or 0xffff when detection fails
+  uint64_t         nprs_peak_power; /// Noncoherently combined NPRS channel peak power
   int              time_sync_cell;
   int timing_advance; /// timing advance signalled from eNB
   int              N_TA_offset; ///timing offset used in TDD

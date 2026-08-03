@@ -29,6 +29,15 @@ void phy_procedures_UE_TX(PHY_VARS_UE *phy_vars_ue,UE_rxtx_proc_t *proc,uint8_t 
 */
 int phy_procedures_UE_RX(PHY_VARS_UE *phy_vars_ue,UE_rxtx_proc_t *proc,uint8_t eNB_id,uint8_t abstraction_flag,uint8_t do_pdcch_flag,runmode_t mode);
 
+/*! \brief Estimate the guard-band NPRS channel and relative time of arrival.
+  @param ue Pointer to UE variables
+  @param proc Pointer to RX processing context
+  @param nid_nprs NPRS sequence identity (0..4095)
+  @param peak_to_avg_threshold Minimum time-domain peak-to-average power ratio
+  @returns Signed relative ToA in samples, or 0xffff when detection fails
+*/
+int32_t ue_nprs_procedures(PHY_VARS_UE *ue, const UE_rxtx_proc_t *proc, uint16_t nid_nprs, uint32_t peak_to_avg_threshold);
+
 /*! \brief Scheduling for UE Sidelink RX procedures in normal subframes.
   @param ue Pointer to UE variables on which to act
   @param proc Pointer to RXn_TXnp4 proc information
@@ -46,6 +55,7 @@ int phy_procedures_slot_parallelization_UE_RX(PHY_VARS_UE *ue,UE_rxtx_proc_t *pr
 #ifdef UE_SLOT_PARALLELISATION
 void *UE_thread_slot1_dl_processing(void *arg);
 #endif
+
 
 /*! \brief Scheduling for UE RX procedures in TDD S-subframes.
   @param phy_vars_ue Pointer to UE variables on which to act
@@ -253,5 +263,3 @@ void compute_srs_pos(frame_type_t frameType,uint16_t isrs,uint16_t *psrsPeriodic
 
 
 #endif
-
-
