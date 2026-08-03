@@ -61,6 +61,15 @@ enum openair_HARQ_TYPE {
 */
 void phy_procedures_eNB_TX(PHY_VARS_eNB *phy_vars_eNB,L1_rxtx_proc_t *proc,int do_meas);
 
+/*! \brief Generate Type 1 NPRS in the guard-band PRB immediately below LTE PRB 0.
+  @param phy_vars_eNB Pointer to eNB variables
+  @param txdataF Frequency-domain transmit grid
+  @param amp Q15 signal amplitude
+  @param subframe Subframe index (0..9)
+  @param nid_nprs NPRS sequence identity (0..4095)
+*/
+int generate_nprs(PHY_VARS_eNB *phy_vars_eNB, int32_t **txdataF, int16_t amp, uint16_t subframe, uint16_t nid_nprs);
+
 /*! \brief Scheduling for eNB RX UE-specific procedures in normal subframes.
   @param phy_vars_eNB Pointer to eNB variables on which to act
   @param proc Pointer to RXn-TXnp4 proc information
@@ -178,5 +187,3 @@ void release_rnti_of_phy(module_id_t mod_id);
 /**@}*/
 
 #endif
-
-

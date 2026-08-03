@@ -7,6 +7,7 @@
  */
 
 #include "PHY/defs_eNB.h"
+#include "PHY/gold.h"
 #include "PHY/phy_extern.h"
 #include "SCHED/sched_eNB.h"
 #include "SCHED/sched_common_extern.h"
@@ -25,6 +26,71 @@
 #include "common/ran_context.h"
 extern RAN_CONTEXT_t RC;
 
+#define NPRS_N_RB_MAX_DL 110
+#define NPRS_NSC 12
+
+int generate_nprs(PHY_VARS_eNB *eNB, int32_t **txdataF, int16_t amp, uint16_t subframe, uint16_t nid_nprs)
+{
+  LTE_DL_FRAME_PARMS *fp = &eNB->frame_parms;
+
+  if (subframe >= LTE_NUMBER_OF_SUBFRAMES_PER_FRAME) {
+    LOG_E(PHY, "generate_nprs: subframe not in range (%u)\n", (unsigned)subframe);
+    return -1;
+  }
+
+  if (nid_nprs > 4095) {
+    LOG_E(PHY, "generate_nprs: NPRS identity not in range (%u)\n", (unsigned)nid_nprs);
+    return -1;
+  }
+
+  if (fp->first_carrier_offset < NPRS_NSC) {
+    LOG_E(PHY, "generate_nprs: no room for an NPRS PRB below first carrier offset %u\n", (unsigned)fp->first_carrier_offset);
+    return -1;
+  }
+
+  const uint16_t symbols_per_slot = fp->symbols_per_tti >> 1;
+  const uint32_t subframe_offset = subframe * fp->symbols_per_tti * fp->ofdm_symbol_size;
+  const uint16_t nprs_prb_offset = fp->first_carrier_offset - NPRS_NSC;
+  const uint16_t vshift = nid_nprs % 6;
+  const int16_t qpsk_amp = ((int32_t)amp * ONE_OVER_SQRT2_Q15) >> 15;
+  int32_t qpsk[4];
+
+  ((int16_t *)&qpsk[0])[0] = qpsk_amp;
+  ((int16_t *)&qpsk[0])[1] = qpsk_amp;
+  ((int16_t *)&qpsk[1])[0] = -qpsk_amp;
+  ((int16_t *)&qpsk[1])[1] = qpsk_amp;
+  ((int16_t *)&qpsk[2])[0] = qpsk_amp;
+  ((int16_t *)&qpsk[2])[1] = -qpsk_amp;
+  ((int16_t *)&qpsk[3])[0] = -qpsk_amp;
+  ((int16_t *)&qpsk[3])[1] = -qpsk_amp;
+
+  for (uint16_t slot_in_subframe = 0; slot_in_subframe < 2; slot_in_subframe++) {
+    const uint16_t ns = (subframe << 1) + slot_in_subframe;
+
+    for (uint16_t l = 0; l < symbols_per_slot; l++) {
+      const uint32_t cinit = (1U << 10) * (7 * (ns + 1) + l + 1) * (2 * nid_nprs + 1) + 2 * nid_nprs + (1 - fp->Ncp);
+      uint32_t x1 = 0;
+      uint32_t x2 = cinit;
+      uint32_t gold = 0;
+
+      /* m' is 109 or 110, so both QPSK symbols are in Gold word 6. */
+      for (uint16_t word = 0; word <= ((NPRS_N_RB_MAX_DL - 1) >> 4); word++)
+        gold = gold_generic(&x1, &x2, word == 0);
+
+      const uint16_t symbol = slot_in_subframe * symbols_per_slot + l;
+      const uint32_t symbol_offset = subframe_offset + symbol * fp->ofdm_symbol_size;
+
+      for (uint16_t m = 0; m < 2; m++) {
+        const uint16_t k = 6 * m + ((vshift + l) % 6);
+        const uint16_t mprime = m + NPRS_N_RB_MAX_DL - 1;
+        const uint8_t qpsk_index = (gold >> (2 * (mprime & 0xf))) & 3;
+        txdataF[0][symbol_offset + nprs_prb_offset + k] = qpsk[qpsk_index];
+      }
+    }
+  }
+
+  return 0;
+}
 
 int16_t get_hundred_times_delta_IF_eNB(PHY_VARS_eNB *eNB,uint16_t ULSCH_id,uint8_t harq_pid, uint8_t bw_factor) {
   uint32_t Nre,sumKr,MPR_x100,Kr,r;
@@ -210,6 +276,8 @@ void common_signal_procedures (PHY_VARS_eNB *eNB,int frame, int subframe) {
   LTE_DL_FRAME_PARMS *fp=&eNB->frame_parms;
   int **txdataF = eNB->common_vars.txdataF;
   uint8_t *pbch_pdu=&eNB->pbch_pdu[0];
+  /* Phase-0 configuration: keep the NPRS identity independent of Nid_cell. */
+  const uint16_t nid_nprs = 0;
   //LOG_D(PHY,"common_signal_procedures: frame %d, subframe %d fdd:%s dir:%s\n",frame,subframe,fp->frame_type == FDD?"FDD":"TDD", subframe_select(fp,subframe) == SF_DL?"DL":"UL?");
   // generate Cell-Specific Reference Signals for both slots
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_ENB_RS_TX,1);
@@ -228,6 +296,9 @@ void common_signal_procedures (PHY_VARS_eNB *eNB,int frame, int subframe) {
   // check that 2nd slot is for DL
   if (subframe_select (fp, subframe) == SF_DL)
     generate_pilots_slot (eNB, txdataF, AMP, (subframe << 1) + 1, 0);
+
+  if (subframe_select(fp, subframe) == SF_DL)
+    generate_nprs(eNB, eNB->common_vars.txdataF, AMP, subframe, nid_nprs);
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME (VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_ENB_RS_TX, 0);
 
