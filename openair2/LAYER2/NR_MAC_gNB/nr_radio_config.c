@@ -2940,6 +2940,8 @@ NR_BCCH_DL_SCH_Message_t *get_SIB1_NR(const NR_ServingCellConfigCommon_t *scc,
   switch (scc->ssb_PositionsInBurst->present) {
     case NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_shortBitmap:
       ServCellCom->ssb_PositionsInBurst.inOneGroup = bit_string_clone(&scc->ssb_PositionsInBurst->choice.shortBitmap);
+      // ServingCellConfigCommonSIB requires an eight-bit inOneGroup bitmap.
+      ServCellCom->ssb_PositionsInBurst.inOneGroup.bits_unused = 0;
       break;
     case NR_ServingCellConfigCommon__ssb_PositionsInBurst_PR_mediumBitmap:
       ServCellCom->ssb_PositionsInBurst.inOneGroup = bit_string_clone(&scc->ssb_PositionsInBurst->choice.mediumBitmap);
