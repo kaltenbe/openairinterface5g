@@ -776,7 +776,7 @@ static NR_BCCH_DL_SCH_Message_t *create_rrc_possib_message(const LPP_AssistanceD
 }
 
 void print_rrc_possib_prs_assistance_data(const PHY_VARS_gNB *gNB,
-                                          const gNB_MAC_INST *mac,
+                                          gNB_MAC_INST *mac,
                                           size_t muting_pattern1_length,
                                           size_t muting_pattern2_length)
 {
@@ -819,6 +819,8 @@ void print_rrc_possib_prs_assistance_data(const PHY_VARS_gNB *gNB,
   xer_fprint(stdout, &asn_DEF_LPP_AssistanceDataSIBelement_r15, sib_element);
   LOG_I(GNB_APP, "PRS PosSIB BCCH-DL-SCH-Message:\n");
   xer_fprint(stdout, &asn_DEF_NR_BCCH_DL_SCH_Message, rrc_message);
+  if (!nr_mac_configure_pos_sib(mac, rrc_message))
+    LOG_E(GNB_APP, "failed to deliver PRS PosSIB message to NR MAC\n");
 
 cleanup:
   ASN_STRUCT_FREE(asn_DEF_NR_BCCH_DL_SCH_Message, rrc_message);
