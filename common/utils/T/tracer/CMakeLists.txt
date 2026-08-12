@@ -21,6 +21,15 @@ target_link_libraries(extract_output_subframe PRIVATE tracer_utils)
 add_executable(extract extract.c)
 target_link_libraries(extract PRIVATE tracer_utils)
 
+add_boolean_option(T_EXTRACT_HDF5 OFF "Enable HDF5 output in the extract tracer tool" OFF)
+if(T_EXTRACT_HDF5)
+  find_package(HDF5 REQUIRED COMPONENTS C)
+  target_sources(extract PRIVATE hdf5_output.c)
+  target_include_directories(extract PRIVATE ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(extract PRIVATE ${HDF5_LIBRARIES})
+  target_compile_definitions(extract PRIVATE T_EXTRACT_HDF5)
+endif()
+
 add_executable(macpdu2wireshark macpdu2wireshark.c)
 target_link_libraries(macpdu2wireshark PRIVATE tracer_utils)
 

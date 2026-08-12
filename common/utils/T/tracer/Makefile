@@ -10,6 +10,12 @@ CXXFLAGS=-Wall -g -pthread -DT_TRACER -I. -I../incgen -std=c++11
 LIBS=-lm
 XLIBS=-lX11 -lpng -lXft
 
+ifeq ($(HDF5),1)
+CFLAGS += $(shell pkg-config --cflags hdf5) -DT_EXTRACT_HDF5
+EXTRACT_HDF5_OBJECTS = hdf5_output.o
+EXTRACT_HDF5_LIBS = $(shell pkg-config --libs hdf5)
+endif
+
 all: record replay extract_config textlog enb ue vcd macpdu2wireshark \
      extract_input_subframe extract_output_subframe to_vcd extract multi \
      gnb t_tracer_app_gnb t_tracer_app_ue gnb_mac csv
@@ -34,8 +40,8 @@ extract_output_subframe: extract_output_subframe.o database.o event.o utils.o \
     configuration.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-extract: extract.o database.o event.o utils.o configuration.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+extract: extract.o database.o event.o utils.o configuration.o $(EXTRACT_HDF5_OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(EXTRACT_HDF5_LIBS)
 
 textlog: utils.o textlog.o database.o event.o handler.o configuration.o \
          view/view.a logger/logger.a filter/filter.a
