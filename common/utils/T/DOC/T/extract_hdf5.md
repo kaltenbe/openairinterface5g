@@ -55,3 +55,11 @@ flat byte dataset plus offsets; buffer `i` occupies
 The event group also records the event ID, selected buffer, complete event
 format, applied filters, source paths, and final record count as attributes.
 Raw output remains the default when `-format` is omitted.
+
+For `GNB_PHY_UL_FREQ_CHANNEL_ESTIMATE`, the MATLAB script
+`common/utils/T/tracer/load_channel_estimates_hdf5.m` loads one selected RNTI
+into an `[Nfft,Nport,Nantenna,Nmeasurements]` complex array. Missing
+antenna/port combinations are zero-filled and reported separately in its
+`measurement_present` output. Set the optional `Nmeasurements` input variable
+before running the script to limit how many measurements and channel buffers
+are read.
