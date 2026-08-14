@@ -40,6 +40,7 @@
 #include "common/platform_types.h"
 #include "PHY/LTE_TRANSPORT/transport_common.h"
 #include "PHY/LTE_TRANSPORT/transport_eNB.h"
+#include "PHY/LTE_TRANSPORT/nbiot_tx.h"
 #include "openair2/PHY_INTERFACE/IF_Module.h"
 #include "common/openairinterface5g_limits.h"
 #include "common/utils/threadPool/task_ans.h"
@@ -530,6 +531,7 @@ typedef struct PHY_VARS_eNB_s {
   LTE_eNB_UCI          uci_vars[NUMBER_OF_UCI_MAX];
   LTE_eNB_SRS          srs_vars[NUMBER_OF_SRS_MAX];
   LTE_eNB_PBCH         pbch;
+  nbiot_tx_state_t     nbiot_tx;
   LTE_eNB_PUSCH       *pusch_vars[NUMBER_OF_ULSCH_MAX];
   LTE_eNB_PRACH        prach_vars;
   LTE_eNB_DLSCH_t     *dlsch[NUMBER_OF_DLSCH_MAX][2];   // Num active DLSCH contexts times two spatial streams

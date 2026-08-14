@@ -297,8 +297,11 @@ void common_signal_procedures (PHY_VARS_eNB *eNB,int frame, int subframe) {
   if (subframe_select (fp, subframe) == SF_DL)
     generate_pilots_slot (eNB, txdataF, AMP, (subframe << 1) + 1, 0);
 
-  if (subframe_select(fp, subframe) == SF_DL)
-    generate_nprs(eNB, eNB->common_vars.txdataF, AMP, subframe, nid_nprs);
+  if (subframe_select(fp, subframe) == SF_DL) {
+    generate_nbiot_guardband(eNB, eNB->common_vars.txdataF, AMP, frame, subframe);
+    if (!nbiot_guardband_reserves_subframe(frame, subframe))
+      generate_nprs(eNB, eNB->common_vars.txdataF, AMP, subframe, nid_nprs);
+  }
 
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME (VCD_SIGNAL_DUMPER_FUNCTIONS_PHY_ENB_RS_TX, 0);
 
