@@ -33,6 +33,7 @@
 #include "LTE_SRB-ToAddModList-NB-r13.h"
 #include "LTE_DRB-ToAddModList-NB-r13.h"
 #include "RRC/LTE/defs_NB_IoT.h"
+#include "RRC/LTE/MESSAGES/asn1_msg_NB_IoT_mib.h"
 #include "LTE_RRCConnectionSetupComplete-NB.h"
 #include "LTE_RRCConnectionReconfigurationComplete-NB.h"
 #include "LTE_RRCConnectionReconfiguration-NB.h"
@@ -56,9 +57,10 @@
 /*do_MIB_NB_NB_IoT*/
 uint8_t do_MIB_NB_IoT(
   rrc_eNB_carrier_data_NB_IoT_t *carrier,
-  uint16_t N_RB_DL,//may not needed--> for NB_IoT only 1 PRB is used
+  uint32_t N_RB_DL,//may not needed--> for NB_IoT only 1 PRB is used
   uint32_t frame,
   uint32_t hyper_frame) {
+  (void)N_RB_DL;
   asn_enc_rval_t enc_rval;
   LTE_BCCH_BCH_Message_NB_t *mib_NB_IoT = &(carrier->mib_NB_IoT);
   /*
@@ -74,9 +76,11 @@ uint8_t do_MIB_NB_IoT(
    * NOTE: in OAI never modify the SIB messages!!??
    */
   //XXX check if correct the bit assignment
-  uint8_t sfn_MSB = (uint8_t)((frame>>6) & 0x0f); // all the 4 bits are set to 1
-  uint8_t hsfn_LSB = (uint8_t)(hyper_frame & 0x03); //2 bits set to 1 (0x3 = 0011)
-  uint16_t spare=0; //11 bits --> use uint16
+  uint8_t sfn_MSB = (uint8_t)(((frame >> 6) & 0x0f) << 4);
+  uint8_t hsfn_LSB = (uint8_t)((hyper_frame & 0x03) << 6);
+  uint8_t guardband_spare = 0;
+  uint8_t spare[2] = {0};
+  memset(mib_NB_IoT, 0, sizeof(*mib_NB_IoT));
   mib_NB_IoT->message.systemFrameNumber_MSB_r13.buf = &sfn_MSB;
   mib_NB_IoT->message.systemFrameNumber_MSB_r13.size = 1; //if expressed in byte
   mib_NB_IoT->message.systemFrameNumber_MSB_r13.bits_unused = 4; //is byte based (so how many bits you don't use of the 8 bits of a bite
@@ -84,35 +88,54 @@ uint8_t do_MIB_NB_IoT(
   mib_NB_IoT->message.hyperSFN_LSB_r13.size= 1;
   mib_NB_IoT->message.hyperSFN_LSB_r13.bits_unused = 6;
   //XXX to be set??
-  mib_NB_IoT->message.spare.buf = (uint8_t *)&spare;
+  mib_NB_IoT->message.spare.buf = spare;
   mib_NB_IoT->message.spare.size = 2;
-  mib_NB_IoT->message.spare.bits_unused = 5;
+  mib_NB_IoT->message.spare.bits_unused = 7;
   //decide how to set it
   mib_NB_IoT->message.schedulingInfoSIB1_r13 =11; //see TS 36.213-->tables 16.4.1.3-3 ecc...
   mib_NB_IoT->message.systemInfoValueTag_r13= 0;
   mib_NB_IoT->message.ab_Enabled_r13 = 0;
   //to be decided
-  mib_NB_IoT->message.operationModeInfo_r13.present = LTE_MasterInformationBlock_NB__operationModeInfo_r13_PR_inband_SamePCI_r13;
-  mib_NB_IoT->message.operationModeInfo_r13.choice.inband_SamePCI_r13.eutra_CRS_SequenceInfo_r13 = 0;
-  printf("[MIB] Initialization of frame information,sfn_MSB %x, hsfn_LSB %x\n",
-         (uint32_t)sfn_MSB,
-         (uint32_t)hsfn_LSB);
+  mib_NB_IoT->message.operationModeInfo_r13.present = LTE_MasterInformationBlock_NB__operationModeInfo_r13_PR_guardband_r13;
+  mib_NB_IoT->message.operationModeInfo_r13.choice.guardband_r13.rasterOffset_r13 = 0;
+  mib_NB_IoT->message.operationModeInfo_r13.choice.guardband_r13.spare.buf = &guardband_spare;
+  mib_NB_IoT->message.operationModeInfo_r13.choice.guardband_r13.spare.size = 1;
+  mib_NB_IoT->message.operationModeInfo_r13.choice.guardband_r13.spare.bits_unused = 5;
+  mib_NB_IoT->message.additionalTransmissionSIB1_r15 = 0;
+  mib_NB_IoT->message.ab_Enabled_5GC_r16 = 0;
+  xer_fprint(stdout, &asn_DEF_LTE_BCCH_BCH_Message_NB, (void *)mib_NB_IoT);
   enc_rval = uper_encode_to_buffer(&asn_DEF_LTE_BCCH_BCH_Message_NB,
                                    NULL,
                                    (void *)mib_NB_IoT,
                                    carrier->MIB_NB_IoT,
-                                   100);
+                                   5);
 
   if(enc_rval.encoded <= 0) {
-    LOG_E(RRC, "ASN1 message encoding failed (%s, %lu)!\n",
-          enc_rval.failed_type->name, enc_rval.encoded);
+    LOG_E(RRC, "ASN1 MIB-NB encoding failed (%s, %ld)!\n",
+          enc_rval.failed_type != NULL ? enc_rval.failed_type->name : "unknown",
+          enc_rval.encoded);
   }
 
   if (enc_rval.encoded==-1) {
     return(-1);
   }
 
-  return((enc_rval.encoded+7)/8);
+  carrier->sizeof_MIB_NB_IoT = (enc_rval.encoded + 7) / 8;
+  return carrier->sizeof_MIB_NB_IoT;
+}
+
+uint8_t do_MIB_NB_IoT_to_buffer(uint8_t *buffer,
+                                size_t buffer_size,
+                                uint32_t N_RB_DL,
+                                uint32_t frame,
+                                uint32_t hyper_frame)
+{
+  if (buffer == NULL || buffer_size < 5)
+    return 0;
+
+  rrc_eNB_carrier_data_NB_IoT_t carrier = {0};
+  carrier.MIB_NB_IoT = buffer;
+  return do_MIB_NB_IoT(&carrier, N_RB_DL, frame, hyper_frame);
 }
 
 /*do_SIB1_NB*/

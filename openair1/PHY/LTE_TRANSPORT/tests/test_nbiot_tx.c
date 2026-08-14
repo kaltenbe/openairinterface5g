@@ -5,6 +5,7 @@
 #include "PHY/CODING/coding_defs.h"
 #include "PHY/LTE_TRANSPORT/nbiot_tx.h"
 #include "PHY/defs_eNB.h"
+#include "RRC/LTE/MESSAGES/asn1_msg_NB_IoT_mib.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,6 +78,12 @@ int main(void)
   crcTableInit();
 
   int failed = 0;
+  uint8_t mib[5] = {0};
+  const uint8_t expected_mib[5] = {0x02, 0xc0, 0x80, 0x00, 0x00};
+  if (do_MIB_NB_IoT_to_buffer(mib, sizeof(mib), 50, 0, 0) != sizeof(mib) ||
+      memcmp(mib, expected_mib, sizeof(mib)) != 0)
+    failed = 1;
+
   failed |= expect_count(enb, antenna, grid, 0, 5, 121);
   failed |= expect_count(enb, antenna, grid, 0, 9, 132);
   failed |= expect_count(enb, antenna, grid, 1, 9, 0);

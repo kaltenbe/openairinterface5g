@@ -19,6 +19,7 @@
 #include "PHY/CODING/coding_defs.h"
 #include "PHY/defs_eNB.h"
 #include "PHY/gold.h"
+#include "RRC/LTE/MESSAGES/asn1_msg_NB_IoT_mib.h"
 #include "common/utils/LOG/log.h"
 
 #include <math.h>
@@ -175,7 +176,7 @@ static void generate_nrs(const LTE_DL_FRAME_PARMS *fp,
   }
 }
 
-static void put_bits(uint8_t *payload, uint16_t *offset, uint32_t value, uint8_t width)
+static void pack_bits(uint8_t *payload, uint16_t *offset, uint32_t value, uint8_t width)
 {
   for (uint8_t i = 0; i < width; i++, (*offset)++) {
     const uint8_t bit = (value >> (width - i - 1)) & 1;
@@ -183,21 +184,36 @@ static void put_bits(uint8_t *payload, uint16_t *offset, uint32_t value, uint8_t
   }
 }
 
-static void pack_mib(nbiot_tx_state_t *state, uint16_t frame)
+static void pack_mib_fallback(nbiot_tx_state_t *state, uint16_t frame)
 {
   uint16_t offset = 0;
   memset(state->mib, 0, sizeof(state->mib));
-  put_bits(state->mib, &offset, (frame >> 6) & 0xf, 4);
-  put_bits(state->mib, &offset, 0, 2); /* hyperSFN-LSB */
-  put_bits(state->mib, &offset, state->scheduling_info_sib1, 4);
-  put_bits(state->mib, &offset, state->system_info_value_tag, 5);
-  put_bits(state->mib, &offset, state->access_barring, 1);
-  put_bits(state->mib, &offset, 2, 2); /* operationModeInfo: guardband */
-  put_bits(state->mib, &offset, state->raster_offset, 2);
-  put_bits(state->mib, &offset, 0, 3); /* Guardband-NB-r13 spare */
-  put_bits(state->mib, &offset, 0, 1); /* additionalTransmissionSIB1-r15 */
-  put_bits(state->mib, &offset, 0, 1); /* ab-Enabled-5GC-r16 */
-  put_bits(state->mib, &offset, 0, 9);
+  pack_bits(state->mib, &offset, (frame >> 6) & 0xf, 4);
+  pack_bits(state->mib, &offset, 0, 2); /* hyperSFN-LSB */
+  pack_bits(state->mib, &offset, state->scheduling_info_sib1, 4);
+  pack_bits(state->mib, &offset, state->system_info_value_tag, 5);
+  pack_bits(state->mib, &offset, state->access_barring, 1);
+  pack_bits(state->mib, &offset, 2, 2); /* operationModeInfo: guardband */
+  pack_bits(state->mib, &offset, state->raster_offset, 2);
+  pack_bits(state->mib, &offset, 0, 3); /* Guardband-NB-r13 spare */
+  pack_bits(state->mib, &offset, 0, 1); /* additionalTransmissionSIB1-r15 */
+  pack_bits(state->mib, &offset, 0, 1); /* ab-Enabled-5GC-r16 */
+  pack_bits(state->mib, &offset, 0, 9);
+}
+
+static void encode_mib(nbiot_tx_state_t *state, const LTE_DL_FRAME_PARMS *fp, uint16_t frame)
+{
+  memset(state->mib, 0, sizeof(state->mib));
+
+  const uint8_t encoded_bytes =
+      do_MIB_NB_IoT_to_buffer(state->mib, sizeof(state->mib), fp->N_RB_DL, frame, 0);
+  if (encoded_bytes != sizeof(state->mib)) {
+    LOG_W(PHY,
+          "do_MIB_NB_IoT encoded %u bytes instead of %zu; using pack_bits fallback\n",
+          encoded_bytes,
+          sizeof(state->mib));
+    pack_mib_fallback(state, frame);
+  }
 }
 
 static void scramble_npbch(nbiot_tx_state_t *state)
@@ -212,9 +228,9 @@ static void scramble_npbch(nbiot_tx_state_t *state)
   }
 }
 
-static void encode_npbch(nbiot_tx_state_t *state, uint16_t frame)
+static void encode_npbch(nbiot_tx_state_t *state, const LTE_DL_FRAME_PARMS *fp, uint16_t frame)
 {
-  pack_mib(state, frame);
+  encode_mib(state, fp, frame);
   ccodelte_encode(NBIOT_MIB_BITS, 2, state->mib, state->npbch_d + 96, 0);
   const uint32_t rcc = sub_block_interleaving_cc(NBIOT_NPBCH_D, state->npbch_d + 96, state->npbch_w);
   lte_rate_matching_cc(rcc, NBIOT_NPBCH_E, state->npbch_w, state->npbch_e);
@@ -273,7 +289,7 @@ static int generate_npbch(PHY_VARS_eNB *eNB,
     state->encoded = false;
   }
   if (!state->encoded || !(frame & 63))
-    encode_npbch(state, frame);
+    encode_npbch(state, fp, frame);
 
   const uint16_t block = (frame / NBIOT_NPBCH_REPETITIONS) % NBIOT_NPBCH_BLOCKS;
   const uint16_t bit_start = block * NBIOT_NPBCH_BITS_PER_BLOCK;
