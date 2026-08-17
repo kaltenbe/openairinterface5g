@@ -452,6 +452,10 @@ int main( int argc, char **argv ) {
 
   get_options(uniqCfg);
 
+  if (!has_cap_sys_nice())
+    LOG_W(UTIL,
+          "no SYS_NICE capability: cannot set thread priority and affinity, consider running with sudo for optimum performance\n");
+
   if (NFAPI_MODE == NFAPI_MODE_STANDALONE_PNF) {
     sf_ahead = 1;
   }

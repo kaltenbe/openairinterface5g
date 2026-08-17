@@ -522,7 +522,9 @@ static void rfsimulator_readconfig(rfsimulator_state_t *rfsimulator)
   if (ret < 0 || rfsimuParamList.numelt <= 0) {
     ret = config_get(cfg, rfsimuParams, sizeofArray(rfsimuParams), RFSIMU_SECTION);
     AssertFatal(ret >= 0, "configuration couldn't be performed\n");
-    LOG_W(HW, "Warning: rfsimulator parameters should be provided as array elements!\n");
+    char cfgpath[MAX_OPTNAME_SIZE];
+    snprintf(cfgpath, sizeof(cfgpath), "%s.[%d]", RFSIMU_SECTION, rfsimulator->ru_id);
+    config_process_cmdline(cfg, rfsimuParams, sizeofArray(rfsimuParams), cfgpath);
     rfsimuParam = rfsimuParams;
   } else {
     int ru_id = rfsimulator->ru_id;
@@ -850,8 +852,10 @@ static int startServer(openair0_device_t *device)
 
   freeaddrinfo(results);
 
-  if (sock <= 0) {
-    LOG_E(HW, "could not open a socket\n");
+  if (sock < 0) {
+    LOG_E(HW,
+          "could not bind RFSIM server socket on port %u. Is another RFSIM server using this port? Select a unique port with --rfsimulator.[0].serverport\n",
+          t->port);
     return -1;
   }
   t->listen_sock = sock;

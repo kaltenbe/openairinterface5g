@@ -1592,7 +1592,7 @@ static void *ru_thread( void *param ) {
     // Start RF device if any
     if (ru->start_rf) {
       if (ru->start_rf(ru) != 0)
-        AssertFatal(1 == 0, "Could not start the RF device\n");
+        LOG_E(HW, "Could not start the RF device\n");
       else
         LOG_I(PHY, "RU %d rf device ready\n", ru->idx);
     } else

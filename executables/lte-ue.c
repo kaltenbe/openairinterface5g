@@ -156,16 +156,24 @@ void init_thread(int sched_runtime,
                  int sched_fifo,
                  cpu_set_t *cpuset,
                  char *name) {
-  int settingPriority = 1;
+  int settingPriority = has_cap_sys_nice();
 
   if (settingPriority) {
-    if (CPU_COUNT(cpuset) > 0)
-      AssertFatal( 0 == pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), cpuset), "");
+    if (CPU_COUNT(cpuset) > 0) {
+      int ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), cpuset);
+      if (ret != 0)
+        LOG_W(UTIL, "Cannot set affinity for %s: %s; continuing with the current affinity\n", name, strerror(ret));
+    }
 
     struct sched_param sp;
     sp.sched_priority = sched_fifo;
-    AssertFatal(pthread_setschedparam(pthread_self(),SCHED_FIFO,&sp)==0,
-                "Can't set thread priority, Are you root?\n");
+    int ret = pthread_setschedparam(pthread_self(), SCHED_FIFO, &sp);
+    if (ret != 0)
+      LOG_W(UTIL,
+            "Cannot set %s to SCHED_FIFO priority %d: %s; continuing with default scheduling\n",
+            name,
+            sp.sched_priority,
+            strerror(ret));
   }
 
   /* Check the actual affinity mask assigned to the thread */
@@ -1702,9 +1710,11 @@ void *UE_thread(void *arg) {
   wait_sync("UE thread");
 
 #ifdef NAS_BUILT_IN_UE
-  MessageDef *message_p;
-  message_p = itti_alloc_new_message(TASK_NAS_UE, 0, INITIALIZE_MESSAGE);
-  itti_send_msg_to_task (TASK_NAS_UE, UE->Mod_id + NB_eNB_INST, message_p);
+  if (!get_softmodem_params()->phy_test) {
+    MessageDef *message_p;
+    message_p = itti_alloc_new_message(TASK_NAS_UE, 0, INITIALIZE_MESSAGE);
+    itti_send_msg_to_task(TASK_NAS_UE, UE->Mod_id + NB_eNB_INST, message_p);
+  }
 #endif
   int sub_frame=-1;
   //int cumulated_shift=0;
@@ -2063,9 +2073,11 @@ void init_UE_single_thread_stub(int nb_inst) {
 
     if(NFAPI_MODE==NFAPI_UE_STUB_PNF || NFAPI_MODE==NFAPI_MODE_STANDALONE_PNF) {
 #ifdef NAS_BUILT_IN_UE
-      MessageDef *message_p;
-      message_p = itti_alloc_new_message(TASK_NAS_UE, 0, INITIALIZE_MESSAGE);
-      itti_send_msg_to_task (TASK_NAS_UE, i + NB_eNB_INST, message_p);
+      if (!get_softmodem_params()->phy_test) {
+        MessageDef *message_p;
+        message_p = itti_alloc_new_message(TASK_NAS_UE, 0, INITIALIZE_MESSAGE);
+        itti_send_msg_to_task(TASK_NAS_UE, i + NB_eNB_INST, message_p);
+      }
 #endif
     }
   }

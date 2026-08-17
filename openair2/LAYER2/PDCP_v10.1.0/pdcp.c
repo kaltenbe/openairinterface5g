@@ -2146,10 +2146,12 @@ uint64_t pdcp_module_init( uint64_t pdcp_optmask, int id) {
       tun_generate_ifname(ifname, "oaitun_ue", i);
       tun_init(ifname, i);
     }
-    char ifname[IFNAMSIZ];
-    tun_generate_ifname(ifname, "oaitun_uem", id + 1);
-    tun_init_mbms(ifname);
-    tun_config(ifname, "10.0.2.2", NULL);
+    if (pdcp_optmask & ENB_NAS_USE_TUN_W_MBMS_BIT) {
+      char ifname[IFNAMSIZ];
+      tun_generate_ifname(ifname, "oaitun_uem", id + 1);
+      tun_init_mbms(ifname);
+      tun_config(ifname, "10.0.2.2", NULL);
+    }
     LOG_I(PDCP, "UE pdcp will use tun interface\n");
   } else if (ENB_NAS_USE_TUN) {
     char ifname[IFNAMSIZ];

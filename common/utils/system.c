@@ -290,7 +290,7 @@ void thread_top_init(char *thread_name)
   struct sched_param sparam;
   char cpu_affinity[1024];
   cpu_set_t cpuset;
-  int settingPriority = 1;
+  int settingPriority = has_cap_sys_nice();
 
   /* Set affinity mask to include CPUs 2 to MAX_CPUS */
   /* CPU 0 is reserved for UHD threads */
@@ -315,6 +315,8 @@ void thread_top_init(char *thread_name)
       strcat(cpu_affinity, temp);
     }
   }
+  pthread_setname_np(pthread_self(), thread_name);
+
 
   if (settingPriority) {
     memset(&sparam, 0, sizeof(sparam));
@@ -323,8 +325,11 @@ void thread_top_init(char *thread_name)
   
     s = pthread_setschedparam(pthread_self(), policy, &sparam);
     if (s != 0) {
-      perror("pthread_setschedparam : ");
-      exit_fun("Error setting thread priority");
+      LOG_W(UTIL,
+            "[SCHED][eNB] cannot set %s to SCHED_FIFO priority %d: %s; continuing with default scheduling\n",
+            thread_name,
+            sparam.sched_priority,
+            strerror(s));
     }
   
     s = pthread_getschedparam(pthread_self(), &policy, &sparam);
@@ -333,7 +338,6 @@ void thread_top_init(char *thread_name)
       exit_fun("Error getting thread priority");
     }
 
-    pthread_setname_np(pthread_self(), thread_name);
 
     LOG_I(HW, "[SCHED][eNB] %s started on CPU %d, sched_policy = %s , priority = %d, CPU Affinity=%s \n",thread_name,sched_getcpu(),
                      (policy == SCHED_FIFO)  ? "SCHED_FIFO" :

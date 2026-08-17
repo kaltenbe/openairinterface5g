@@ -18,7 +18,7 @@ int create_tasks_ue(uint32_t ue_nb)
   LOG_D(ENB_APP, "%s(ue_nb:%d)\n", __FUNCTION__, ue_nb);
   itti_wait_ready(1);
 
-  if (!IS_SOFTMODEM_NOS1) {
+  if (!IS_SOFTMODEM_NOS1 && !get_softmodem_params()->phy_test) {
 #      if defined(NAS_BUILT_IN_UE)
 
     if (ue_nb > 0) {
@@ -36,6 +36,8 @@ int create_tasks_ue(uint32_t ue_nb)
     }
 
 #      endif
+  } else if (get_softmodem_params()->phy_test) {
+    LOG_I(NAS, "Skipping NAS UE task in phy-test mode\n");
   }
 
   if (ue_nb > 0) {
