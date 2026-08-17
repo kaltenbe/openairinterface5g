@@ -140,8 +140,12 @@ void nas_user_initialize(nas_user_t *user, emm_indication_callback_t emm_cb,
   /* Get UE data stored in the non-volatile memory device */
   int rc = memory_read(user->user_nvdata_store, user->nas_user_nvdata, sizeof(user_nvdata_t));
   if (rc != RETURNok) {
-    LOG_TRACE(ERROR, "USR-MAIN  - Failed to read non volatile memory");
-    abort();
+    LOG_TRACE(ERROR,
+              "USR-MAIN  - Cannot read UE nonvolatile data from '%s'. "
+              "Generate the UE data with 'conf2uedata -c <ue-usim.conf> -o <directory>' "
+              "and set NVRAM_DIR and USIM_DIR to that directory",
+              user->user_nvdata_store);
+    exit(EXIT_FAILURE);
   }
 
   user->nas_user_context = calloc_or_fail(1, sizeof(nas_user_context_t));

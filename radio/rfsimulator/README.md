@@ -82,6 +82,11 @@ The RF simulator is using the configuration module, and its parameters are defin
 |`--rfsimulator.[0].prop_delay`        | simulated receive-path (gNB: UL, UE: DL) propagation delay in ms               | 0                      |
 |`--rfsimulator.[0].wait_timeout`      | wait timeout when no UE is connected                                           | 1                      |
 
+Only one RFSIM server can listen on a given address and port. To run multiple
+independent eNB/UE or gNB/UE pairs on the same machine, assign a different
+`serverport` to each pair and pass the same value to both the server and its
+client.
+
 Please refer to this document [`SIMULATION/TOOLS/DOC/channel_simulation.md`](../../openair1/SIMULATION/TOOLS/DOC/channel_simulation.md) for information about using the RFSimulator options to run the simulator with a channel model.
 
 ## 4G case

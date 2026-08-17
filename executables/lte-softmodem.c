@@ -351,7 +351,13 @@ static void init_pdcp(void)
   if (IS_SOFTMODEM_NOS1)
     pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_BIT;
 
-  pdcp_initmask = pdcp_initmask | ENB_NAS_USE_TUN_W_MBMS_BIT;
+  for (int enb_id = 0; enb_id < RC.nb_inst; ++enb_id) {
+    const RrcConfigurationReq *configuration = &RC.rrc[enb_id]->configuration;
+    if (configuration->eMBMS_configured || configuration->eMBMS_M2_configured) {
+      pdcp_initmask |= ENB_NAS_USE_TUN_W_MBMS_BIT;
+      break;
+    }
+  }
 
   pdcp_module_init(pdcp_initmask, 0);
 }
@@ -383,6 +389,9 @@ int main ( int argc, char **argv )
   lock_memory_to_ram();
   printf("Reading in command-line options\n");
   get_options(uniqCfg);
+  if (!has_cap_sys_nice())
+    LOG_W(UTIL,
+          "no SYS_NICE capability: cannot set thread priority and affinity, consider running with sudo for optimum performance\n");
 
   if (CONFIG_ISFLAGSET(CONFIG_ABORT)) {
     fprintf(stderr,"Getting configuration failed\n");
