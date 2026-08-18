@@ -85,6 +85,8 @@ typedef struct {
   double max_Doppler;
   ///constant carrier frequency offset in Hz to be applied as a phase ramp on the received signal.
   double cfo_hz;
+  /// current constant-CFO phase of each RX antenna (for continuity across RFsim read blocks)
+  double *cfo_phase_cur;
   ///Square root of the full correlation matrix size(R_tx) = nb_taps * (n_tx * n_rx) * (n_tx * n_rx).
   struct complexd **R_sqrt;
   ///path loss including shadow fading in dB
@@ -289,6 +291,7 @@ typedef enum {
 #define CHANNELMOD_MODEL_FF_PNAME "forgetfact"
 #define CHANNELMOD_MODEL_CO_PNAME "offset"
 #define CHANNELMOD_MODEL_DT_PNAME "ds_tdl"
+#define CHANNELMOD_MODEL_CFO_PNAME "cfo_hz"
 
 // clang-format off
 #define CHANNELMOD_MODEL_PARAMS_DESC {  \
@@ -299,6 +302,7 @@ typedef enum {
     {CHANNELMOD_MODEL_FF_PNAME,   "channel forget factor ((0 to 1)\n", 0,  .dblptr=NULL,             .defdblval=0,                     TYPE_DOUBLE,    0 }, \
     {CHANNELMOD_MODEL_CO_PNAME,   "channel offset in samps\n",         0,  .iptr=NULL,               .defintval=0,                     TYPE_INT,       0 }, \
     {CHANNELMOD_MODEL_DT_PNAME,   "delay spread for TDL models\n",     0,  .dblptr=NULL,             .defdblval=0,                     TYPE_DOUBLE,    0 }, \
+    {CHANNELMOD_MODEL_CFO_PNAME,  "constant carrier offset in Hz\n",  0,  .dblptr=NULL,             .defdblval=0,                     TYPE_DOUBLE,    0 }, \
 }
 // clang-format on
 

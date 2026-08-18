@@ -111,6 +111,7 @@ void fill_channel_desc(channel_desc_t *chan_desc,
   chan_desc->ip                         = 0.0;
   chan_desc->max_Doppler                = max_Doppler;
   chan_desc->cfo_hz                     = 0.0;
+  chan_desc->cfo_phase_cur              = calloc(nb_rx, sizeof(*chan_desc->cfo_phase_cur));
   chan_desc->Doppler_phase_cur          = calloc(nb_rx, sizeof(double));
   chan_desc->ch                         = calloc(nb_tx*nb_rx, sizeof(struct complexd *));
   chan_desc->chF                        = calloc(nb_tx*nb_rx, sizeof(struct complexd *));
@@ -1732,6 +1733,7 @@ void free_channel_desc_scm(channel_desc_t *ch) {
       free(ch->R_sqrt[i]);
 
   free(ch->R_sqrt);
+  free(ch->cfo_phase_cur);
   free(ch->Doppler_phase_cur);
   free(ch->ch);
   free(ch->chF);
@@ -2306,6 +2308,7 @@ int load_channellist(uint8_t nb_tx, uint8_t nb_rx, double sampling_rate, uint64_
   int pindex_PL = config_paramidx_fromname(achannel_params,numparams, CHANNELMOD_MODEL_PL_PNAME );
   int pindex_NP = config_paramidx_fromname(achannel_params,numparams, CHANNELMOD_MODEL_NP_PNAME );
   int pindex_TYPE = config_paramidx_fromname(achannel_params,numparams, CHANNELMOD_MODEL_TYPE_PNAME);
+  int pindex_CFO = config_paramidx_fromname(achannel_params,numparams, CHANNELMOD_MODEL_CFO_PNAME);
 
   for (int i=0; i<channel_list.numelt; i++) {
     int modid = modelid_fromstrtype( *(channel_list.paramarray[i][pindex_TYPE].strptr) );
@@ -2334,6 +2337,7 @@ int load_channellist(uint8_t nb_tx, uint8_t nb_rx, double sampling_rate, uint64_
                                                          *(channel_list.paramarray[i][pindex_PL].dblptr),
                                                          *(channel_list.paramarray[i][pindex_NP].dblptr));
     AssertFatal( (channeldesc_p!= NULL), "Could not allocate channel %s type %s \n",*(channel_list.paramarray[i][pindex_NAME].strptr), *(channel_list.paramarray[i][pindex_TYPE].strptr));
+    channeldesc_p->cfo_hz = *(channel_list.paramarray[i][pindex_CFO].dblptr);
     channeldesc_p->model_name = strdup(*(channel_list.paramarray[i][pindex_NAME].strptr));
     LOG_I(OCM,"Model %s type %s allocated from config file, list %s\n",*(channel_list.paramarray[i][pindex_NAME].strptr),
           *(channel_list.paramarray[i][pindex_TYPE].strptr), modellist_name);

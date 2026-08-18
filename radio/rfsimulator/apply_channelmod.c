@@ -226,6 +226,9 @@ void rxAddInput(c16_t **input_sig, cf_t *after_channel_sig, int rxAnt, channel_d
   const int nbTx = channelDesc->nb_tx;
   double Doppler_phase_cur = channelDesc->Doppler_phase_cur[rxAnt];
   Doppler_phase_cur -= 2 * M_PI * round(Doppler_phase_cur / (2 * M_PI));
+  double cfo_phase_cur = channelDesc->cfo_phase_cur[rxAnt];
+  cfo_phase_cur -= 2 * M_PI * round(cfo_phase_cur / (2 * M_PI));
+  const double cfo_phase_inc = 2 * M_PI * channelDesc->cfo_hz / channelDesc->sampling_rate;
 
   for (int i = 0; i < nbSamples; i++) {
     cf_t *out_ptr = after_channel_sig + i;
@@ -255,12 +258,25 @@ void rxAddInput(c16_t **input_sig, cf_t *after_channel_sig, int rxAnt, channel_d
       Doppler_phase_cur += channelDesc->Doppler_phase_inc;
     }
 
+    if (cfo_phase_inc != 0.0) {
+#ifdef CMPLX
+      double complex in = CMPLX(rx_tmp.r, rx_tmp.i);
+#else
+      double complex in = rx_tmp.r + rx_tmp.i * I;
+#endif
+      double complex out = in * cexp(cfo_phase_cur * I);
+      rx_tmp.r = creal(out);
+      rx_tmp.i = cimag(out);
+      cfo_phase_cur += cfo_phase_inc;
+    }
+
     out_ptr->r += rx_tmp.r * pathLossLinear + noise_per_sample * gaussZiggurat(0.0, 1.0);
     out_ptr->i += rx_tmp.i * pathLossLinear + noise_per_sample * gaussZiggurat(0.0, 1.0);
     out_ptr++;
   }
 
   channelDesc->Doppler_phase_cur[rxAnt] = Doppler_phase_cur;
+  channelDesc->cfo_phase_cur[rxAnt] = cfo_phase_cur;
 
   // Cast to a wrong type for compatibility !
   LOG_D(HW,
