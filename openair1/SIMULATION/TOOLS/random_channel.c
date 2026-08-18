@@ -110,6 +110,7 @@ void fill_channel_desc(channel_desc_t *chan_desc,
   chan_desc->first_run                  = 1;
   chan_desc->ip                         = 0.0;
   chan_desc->max_Doppler                = max_Doppler;
+  chan_desc->cfo_hz                     = 0.0;
   chan_desc->Doppler_phase_cur          = calloc(nb_rx, sizeof(double));
   chan_desc->ch                         = calloc(nb_tx*nb_rx, sizeof(struct complexd *));
   chan_desc->chF                        = calloc(nb_tx*nb_rx, sizeof(struct complexd *));
@@ -440,6 +441,17 @@ void tdlModel(int  tdl_paths, double *tdl_delays, double *tdl_amps_dB, double DS
   }
 }
 
+void get_cexp_cfo(struct complexd *cexp_cfo, double cfo_hz, double sampling_rate_hz, const uint32_t length)
+{
+  const double phase_step = 2.0 * M_PI * cfo_hz / sampling_rate_hz;
+
+  for (uint32_t t_idx = 0; t_idx < length; t_idx++) {
+    const double phase = phase_step * t_idx;
+    cexp_cfo[t_idx].r = cos(phase);
+    cexp_cfo[t_idx].i = sin(phase);
+  }
+}
+
 void get_cexp_doppler(struct complexd *cexp_doppler, channel_desc_t *chan_desc, const uint32_t length)
 {
   // TS 38.104 - Table G.3-1
@@ -585,6 +597,7 @@ channel_desc_t *new_channel_desc_scm(uint8_t nb_tx,
   chan_desc->path_loss_dB               = path_loss_dB;
   chan_desc->first_run                  = 1;
   chan_desc->ip                         = 0.0;
+  chan_desc->cfo_hz                     = 0.0;
   chan_desc->noise_power_dB             = noise_power_dB;
   chan_desc->normalization_ch_factor    = 1.0;
   LOG_I(OCM,"Channel Model (inside of new_channel_desc_scm)=%d\n\n", channel_model);

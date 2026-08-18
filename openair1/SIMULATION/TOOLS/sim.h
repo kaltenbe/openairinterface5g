@@ -83,6 +83,8 @@ typedef struct {
   int8_t random_aoa;
   ///in Hz. if >0 generate a channel with a Clarke's Doppler profile with a maximum Doppler bandwidth max_Doppler. CURRENTLY NOT IMPLEMENTED!
   double max_Doppler;
+  ///constant carrier frequency offset in Hz to be applied as a phase ramp on the received signal.
+  double cfo_hz;
   ///Square root of the full correlation matrix size(R_tx) = nb_taps * (n_tx * n_rx) * (n_tx * n_rx).
   struct complexd **R_sqrt;
   ///path loss including shadow fading in dB
@@ -368,6 +370,15 @@ void set_channeldesc_direction(channel_desc_t *cdesc, bool is_uplink);
 \param length Size of complex exponential of Doppler shift
 */
 void get_cexp_doppler(struct complexd *cexp_doppler, channel_desc_t *chan_desc, const uint32_t length);
+
+/** \fn void get_cexp_cfo(struct complexd *cexp_cfo, double cfo_hz, double sampling_rate_hz, const uint32_t length)
+\brief This routine generates a constant CFO phase ramp that can be applied separately from the Doppler model.
+\param cexp_cfo Output with the complex exponential for the CFO phase ramp
+\param cfo_hz Carrier frequency offset in Hz
+\param sampling_rate_hz Sampling rate in Hz
+\param length Number of samples to generate
+*/
+void get_cexp_cfo(struct complexd *cexp_cfo, double cfo_hz, double sampling_rate_hz, const uint32_t length);
 
 /** \fn void random_channel(channel_desc_t *desc)
 \brief This routine generates a random channel response (time domain) according to a tapped delay line model.

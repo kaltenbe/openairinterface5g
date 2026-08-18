@@ -73,6 +73,7 @@
 #define CONFIG_HLP_USRP_ARGS     "set the arguments to identify USRP (same syntax as in UHD)\n"
 #define CONFIG_HLP_DMAMAP        "use DMA memory mapping\n"
 #define CONFIG_HLP_TDD "Set hardware to TDD mode (default: FDD). Used only with -U (otherwise set in config file).\n"
+#define CONFIG_HLP_UECFO "Set a fixed UE CFO in Hz for compensation; when non-zero, lte_est_freq_offset is skipped.\n"
 
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                            command line parameters specific to UE                                                                     */
@@ -88,6 +89,7 @@
     {"ue-nb-ant-tx",      CONFIG_HLP_UENANTT,     0,               .u8ptr=&nb_antenna_tx,               .defuintval=1,         TYPE_UINT8,    0},   \
     {"ue-scan-carrier",   CONFIG_HLP_UESCAN,      PARAMFLAG_BOOL,  .iptr=&UE_scan_carrier,              .defintval=0,          TYPE_INT,      0},   \
     {"ue-max-power",      NULL,                   0,               .iptr=&(tx_max_power[0]),            .defintval=23,         TYPE_INT,      0},   \
+    {"ue-cfo",            CONFIG_HLP_UECFO,       0,               .iptr=&fixed_cfo_hz,                 .defintval=0,          TYPE_INT,      0},   \
     {"emul-iface",        CONFIG_HLP_EMULIFACE,   0,               .strptr=&emul_iface,                 .defstrval="lo",       TYPE_STRING, 100},   \
     {"L2-emul",           NULL,                   0,               .u8ptr=&nfapi_mode,                  .defuintval=3,         TYPE_UINT8,    0},   \
     {"num-ues",           NULL,                   0,               .iptr=&(NB_UE_INST),                 .defuintval=1,         TYPE_INT,      0},   \
@@ -120,6 +122,7 @@ extern uint64_t downlink_frequency[MAX_NUM_CCs][4];
 extern int64_t uplink_frequency_offset[MAX_NUM_CCs][4];
 
 extern int rx_input_level_dBm;
+extern int fixed_cfo_hz;
 extern pthread_cond_t sync_cond;
 extern pthread_mutex_t sync_mutex;
 extern int sync_var;

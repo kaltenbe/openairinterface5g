@@ -118,6 +118,7 @@ int transmission_mode=1;
 
 char *usrp_args=NULL;
 char *usrp_clksrc=NULL;
+int fixed_cfo_hz = 0;
 
 THREAD_STRUCT thread_struct;
 /* struct for ethernet specific parameters given in eNB conf file */
