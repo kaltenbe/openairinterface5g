@@ -273,7 +273,30 @@ int initial_sync(PHY_VARS_UE *ue, runmode_t mode) {
 
   exit(-1);
   */
-  sync_pos = lte_sync_time((c16_t **)ue->common_vars.rxdata, frame_parms, (int *)&ue->common_vars.eNb_id);
+  c16_t **sync_rxdata = (c16_t **)ue->common_vars.rxdata;
+  c16_t *compensated_rxdata[frame_parms->nb_antennas_rx];
+  const unsigned int frame_length_samples = 10 * frame_parms->samples_per_tti;
+
+  if (fixed_cfo_hz != 0) {
+    for (int aa = 0; aa < frame_parms->nb_antennas_rx; aa++) {
+      compensated_rxdata[aa] = malloc16(frame_length_samples * sizeof(*compensated_rxdata[aa]));
+      AssertFatal(compensated_rxdata[aa] != NULL, "Failed to allocate LTE CFO synchronization buffer\n");
+      memcpy(compensated_rxdata[aa], ue->common_vars.rxdata[aa], frame_length_samples * sizeof(*compensated_rxdata[aa]));
+      lte_compensate_cfo(compensated_rxdata[aa],
+                         frame_parms,
+                         0,
+                         frame_length_samples,
+                         frame_length_samples,
+                         fixed_cfo_hz);
+    }
+    sync_rxdata = compensated_rxdata;
+  }
+
+  sync_pos = lte_sync_time(sync_rxdata, frame_parms, (int *)&ue->common_vars.eNb_id);
+
+  if (fixed_cfo_hz != 0)
+    for (int aa = 0; aa < frame_parms->nb_antennas_rx; aa++)
+      free16(compensated_rxdata[aa], frame_length_samples * sizeof(*compensated_rxdata[aa]));
 
   //  LOG_M("rxdata1.m","rxd1",ue->common_vars.rxdata[0],10*frame_parms->samples_per_tti,1,1);
   if (sync_pos >= frame_parms->nb_prefix_samples)
@@ -449,7 +472,7 @@ int initial_sync(PHY_VARS_UE *ue, runmode_t mode) {
   }
 
   /* Consider this is a false detection if the offset is > 1000 Hz */
-  if( (abs(ue->common_vars.freq_offset) > 150) && (ret == 0) ) {
+  if ((fixed_cfo_hz == 0) && (abs(ue->common_vars.freq_offset) > 150) && (ret == 0)) {
     ret=-1;
     LOG_E(HW, "Ignore MIB with high freq offset [%d Hz] estimation \n",ue->common_vars.freq_offset);
   }

@@ -31,6 +31,13 @@ int slot_fep(PHY_VARS_UE *phy_vars_ue,
              int no_prefix,
 	     int reset_freq_est);
 
+void lte_compensate_cfo(c16_t *rx_data,
+                        const LTE_DL_FRAME_PARMS *frame_parms,
+                        unsigned int start_sample,
+                        unsigned int num_samples,
+                        unsigned int frame_length_samples,
+                        int freq_offset_hz);
+
 int nr_slot_fep(PHY_VARS_NR_UE *ue,
                 const NR_DL_FRAME_PARMS *frame_parms,
                 unsigned int slot,

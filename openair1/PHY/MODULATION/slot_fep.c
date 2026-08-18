@@ -12,11 +12,12 @@ extern int fixed_cfo_hz;
 
 #define SOFFSET 0
 
-static void compensate_lte_cfo(c16_t *rx_data,
-                              const LTE_DL_FRAME_PARMS *frame_parms,
-                              const unsigned int start_sample,
-                              const unsigned int num_samples,
-                              const int freq_offset_hz)
+void lte_compensate_cfo(c16_t *rx_data,
+                        const LTE_DL_FRAME_PARMS *frame_parms,
+                        const unsigned int start_sample,
+                        const unsigned int num_samples,
+                        const unsigned int frame_length_samples,
+                        const int freq_offset_hz)
 {
   if (freq_offset_hz == 0 || num_samples == 0)
     return;
@@ -25,13 +26,13 @@ static void compensate_lte_cfo(c16_t *rx_data,
   const double off_angle = -2.0 * M_PI * s_time * (double)freq_offset_hz;
 
   for (unsigned int n = 0; n < num_samples; n++) {
-    const unsigned int idx = start_sample + n;
-    const double re = rx_data[idx].r;
-    const double im = rx_data[idx].i;
-    const double alpha = (double)n * off_angle;
+    const unsigned int idx = (start_sample + n) % frame_length_samples;
+    const double re = rx_data[n].r;
+    const double im = rx_data[n].i;
+    const double alpha = (double)idx * off_angle;
 
-    rx_data[idx].r = (int16_t)lround(re * cos(alpha) - im * sin(alpha));
-    rx_data[idx].i = (int16_t)lround(re * sin(alpha) + im * cos(alpha));
+    rx_data[n].r = (int16_t)lround(re * cos(alpha) - im * sin(alpha));
+    rx_data[n].i = (int16_t)lround(re * sin(alpha) + im * cos(alpha));
   }
 }
 
@@ -92,18 +93,26 @@ int slot_fep(PHY_VARS_UE *ue,
     // Align with 256 bit
     //    rx_offset = rx_offset&0xfffffff8;
 
-    if (common_vars->freq_offset != 0) {
-      const unsigned int sample_idx = (rx_offset % frame_length_samples);
-      compensate_lte_cfo(&common_vars->rxdata[aa][0], frame_parms, sample_idx, frame_parms->ofdm_symbol_size, common_vars->freq_offset);
-    }
-
     if (l==0) {
       if (rx_offset > (frame_length_samples - frame_parms->ofdm_symbol_size))
         memcpy((short *)&common_vars->rxdata[aa][frame_length_samples],
                (short *)&common_vars->rxdata[aa][0],
                frame_parms->ofdm_symbol_size*sizeof(int));
 
-      if ((rx_offset&7)!=0) {  // if input to dft is not 256-bit aligned, issue for size 6,15 and 25 PRBs
+      if (common_vars->freq_offset != 0) {
+        for (unsigned int n = 0; n < frame_parms->ofdm_symbol_size; n++)
+          tmp_dft_in[n] = common_vars->rxdata[aa][(rx_offset + n) % frame_length_samples];
+        lte_compensate_cfo((c16_t *)tmp_dft_in,
+                           frame_parms,
+                           rx_offset % frame_length_samples,
+                           frame_parms->ofdm_symbol_size,
+                           frame_length_samples,
+                           common_vars->freq_offset);
+        dft(dftsizeidx,
+            (int16_t *)tmp_dft_in,
+            (int16_t *)&common_vars->common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]].rxdataF[aa][frame_parms->ofdm_symbol_size*symbol],
+            1);
+      } else if ((rx_offset&7)!=0) {  // if input to dft is not 256-bit aligned, issue for size 6,15 and 25 PRBs
         memcpy((void *)tmp_dft_in,
                (void *)&common_vars->rxdata[aa][rx_offset % frame_length_samples],
                frame_parms->ofdm_symbol_size*sizeof(int));
@@ -132,7 +141,20 @@ int slot_fep(PHY_VARS_UE *ue,
 
       start_UE_TIMING(ue->rx_dft_stats);
 
-      if ((rx_offset&7)!=0) {  // if input to dft is not 128-bit aligned, issue for size 6 and 15 PRBs
+      if (common_vars->freq_offset != 0) {
+        for (unsigned int n = 0; n < frame_parms->ofdm_symbol_size; n++)
+          tmp_dft_in[n] = common_vars->rxdata[aa][(rx_offset + n) % frame_length_samples];
+        lte_compensate_cfo((c16_t *)tmp_dft_in,
+                           frame_parms,
+                           rx_offset % frame_length_samples,
+                           frame_parms->ofdm_symbol_size,
+                           frame_length_samples,
+                           common_vars->freq_offset);
+        dft(dftsizeidx,
+            (int16_t *)tmp_dft_in,
+            (int16_t *)&common_vars->common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]].rxdataF[aa][frame_parms->ofdm_symbol_size*symbol],
+            1);
+      } else if ((rx_offset&7)!=0) {  // if input to dft is not 128-bit aligned, issue for size 6 and 15 PRBs
         memcpy((void *)tmp_dft_in,
                (void *)&common_vars->rxdata[aa][(rx_offset) % frame_length_samples],
                frame_parms->ofdm_symbol_size*sizeof(int));
@@ -259,18 +281,26 @@ int front_end_fft(PHY_VARS_UE *ue,
     // Align with 256 bit
     //    rx_offset = rx_offset&0xfffffff8;
 
-    if (common_vars->freq_offset != 0) {
-      const unsigned int sample_idx = (rx_offset % frame_length_samples);
-      compensate_lte_cfo(&common_vars->rxdata[aa][0], frame_parms, sample_idx, frame_parms->ofdm_symbol_size, common_vars->freq_offset);
-    }
-
     if (l==0) {
       if (rx_offset > (frame_length_samples - frame_parms->ofdm_symbol_size))
         memcpy((short *)&common_vars->rxdata[aa][frame_length_samples],
                (short *)&common_vars->rxdata[aa][0],
                frame_parms->ofdm_symbol_size*sizeof(int));
 
-      if ((rx_offset&7)!=0) {  // if input to dft is not 256-bit aligned, issue for size 6,15 and 25 PRBs
+      if (common_vars->freq_offset != 0) {
+        for (unsigned int n = 0; n < frame_parms->ofdm_symbol_size; n++)
+          tmp_dft_in[n] = common_vars->rxdata[aa][(rx_offset + n) % frame_length_samples];
+        lte_compensate_cfo((c16_t *)tmp_dft_in,
+                           frame_parms,
+                           rx_offset % frame_length_samples,
+                           frame_parms->ofdm_symbol_size,
+                           frame_length_samples,
+                           common_vars->freq_offset);
+        dft(dftsizeidx,
+            (int16_t *)tmp_dft_in,
+            (int16_t *)&common_vars->common_vars_rx_data_per_thread[threadId].rxdataF[aa][frame_parms->ofdm_symbol_size*symbol],
+            1);
+      } else if ((rx_offset&7)!=0) {  // if input to dft is not 256-bit aligned, issue for size 6,15 and 25 PRBs
         memcpy((void *)tmp_dft_in,
                (void *)&common_vars->rxdata[aa][rx_offset % frame_length_samples],
                frame_parms->ofdm_symbol_size*sizeof(int));
@@ -300,7 +330,20 @@ int front_end_fft(PHY_VARS_UE *ue,
 
       start_meas(&ue->rx_dft_stats);
 
-      if ((rx_offset&7)!=0) {  // if input to dft is not 128-bit aligned, issue for size 6 and 15 PRBs
+      if (common_vars->freq_offset != 0) {
+        for (unsigned int n = 0; n < frame_parms->ofdm_symbol_size; n++)
+          tmp_dft_in[n] = common_vars->rxdata[aa][(rx_offset + n) % frame_length_samples];
+        lte_compensate_cfo((c16_t *)tmp_dft_in,
+                           frame_parms,
+                           rx_offset % frame_length_samples,
+                           frame_parms->ofdm_symbol_size,
+                           frame_length_samples,
+                           common_vars->freq_offset);
+        dft(dftsizeidx,
+            (int16_t *)tmp_dft_in,
+            (int16_t *)&common_vars->common_vars_rx_data_per_thread[threadId].rxdataF[aa][frame_parms->ofdm_symbol_size*symbol],
+            1);
+      } else if ((rx_offset&7)!=0) {  // if input to dft is not 128-bit aligned, issue for size 6 and 15 PRBs
         memcpy((void *)tmp_dft_in,
                (void *)&common_vars->rxdata[aa][(rx_offset) % frame_length_samples],
                frame_parms->ofdm_symbol_size*sizeof(int));
