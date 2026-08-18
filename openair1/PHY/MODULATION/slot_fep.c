@@ -6,9 +6,34 @@
 #include "modulation_UE.h"
 #include "PHY/LTE_ESTIMATION/lte_estimation.h"
 
+extern int fixed_cfo_hz;
+
 //#define DEBUG_FEP
 
 #define SOFFSET 0
+
+static void compensate_lte_cfo(c16_t *rx_data,
+                              const LTE_DL_FRAME_PARMS *frame_parms,
+                              const unsigned int start_sample,
+                              const unsigned int num_samples,
+                              const int freq_offset_hz)
+{
+  if (freq_offset_hz == 0 || num_samples == 0)
+    return;
+
+  const double s_time = 1.0 / (1.0e3 * frame_parms->samples_per_subframe);
+  const double off_angle = -2.0 * M_PI * s_time * (double)freq_offset_hz;
+
+  for (unsigned int n = 0; n < num_samples; n++) {
+    const unsigned int idx = start_sample + n;
+    const double re = rx_data[idx].r;
+    const double im = rx_data[idx].i;
+    const double alpha = (double)n * off_angle;
+
+    rx_data[idx].r = (int16_t)lround(re * cos(alpha) - im * sin(alpha));
+    rx_data[idx].i = (int16_t)lround(re * sin(alpha) + im * cos(alpha));
+  }
+}
 
 int slot_fep(PHY_VARS_UE *ue,
              unsigned char l,
@@ -57,11 +82,20 @@ int slot_fep(PHY_VARS_UE *ue,
     return(-1);
   }
 
+  if (fixed_cfo_hz != 0) {
+    common_vars->freq_offset = fixed_cfo_hz;
+  }
+
   for (aa=0; aa<frame_parms->nb_antennas_rx; aa++) {
     memset(&common_vars->common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]].rxdataF[aa][frame_parms->ofdm_symbol_size*symbol],0,frame_parms->ofdm_symbol_size*sizeof(int));
     rx_offset = sample_offset + slot_offset + nb_prefix_samples0 + subframe_offset - SOFFSET;
     // Align with 256 bit
     //    rx_offset = rx_offset&0xfffffff8;
+
+    if (common_vars->freq_offset != 0) {
+      const unsigned int sample_idx = (rx_offset % frame_length_samples);
+      compensate_lte_cfo(&common_vars->rxdata[aa][0], frame_parms, sample_idx, frame_parms->ofdm_symbol_size, common_vars->freq_offset);
+    }
 
     if (l==0) {
       if (rx_offset > (frame_length_samples - frame_parms->ofdm_symbol_size))
@@ -148,7 +182,7 @@ int slot_fep(PHY_VARS_UE *ue,
       printf("Frequency offset estimation\n");
 #endif
 
-      if (l==(4-frame_parms->Ncp)) {
+      if (fixed_cfo_hz == 0 && l==(4-frame_parms->Ncp)) {
         start_UE_TIMING(ue->dlsch_freq_offset_estimation_stats);
         lte_est_freq_offset(common_vars->common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]].dl_ch_estimates[0],
                             frame_parms,
@@ -214,12 +248,21 @@ int front_end_fft(PHY_VARS_UE *ue,
 
   threadId = ue->current_thread_id[Ns>>1];
 
+  if (fixed_cfo_hz != 0) {
+    common_vars->freq_offset = fixed_cfo_hz;
+  }
+
   for (aa=0; aa<frame_parms->nb_antennas_rx; aa++) {
     // change thread index
     memset(&common_vars->common_vars_rx_data_per_thread[threadId].rxdataF[aa][frame_parms->ofdm_symbol_size*symbol],0,frame_parms->ofdm_symbol_size*sizeof(int));
     rx_offset = sample_offset + slot_offset + nb_prefix_samples0 + subframe_offset - SOFFSET;
     // Align with 256 bit
     //    rx_offset = rx_offset&0xfffffff8;
+
+    if (common_vars->freq_offset != 0) {
+      const unsigned int sample_idx = (rx_offset % frame_length_samples);
+      compensate_lte_cfo(&common_vars->rxdata[aa][0], frame_parms, sample_idx, frame_parms->ofdm_symbol_size, common_vars->freq_offset);
+    }
 
     if (l==0) {
       if (rx_offset > (frame_length_samples - frame_parms->ofdm_symbol_size))

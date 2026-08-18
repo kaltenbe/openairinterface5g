@@ -158,6 +158,11 @@ void __attribute__((no_sanitize_address)) multipath_channel(channel_desc_t *desc
     get_cexp_doppler(cexp_doppler, desc, length);
   }
 
+  struct complexd cexp_cfo[length];
+  if (desc->cfo_hz != 0.0) {
+    get_cexp_cfo(cexp_cfo, desc->cfo_hz, desc->sampling_rate * 1e6, length);
+  }
+
   for (int i = 0; i < ((int)length - dd); i++) {
     for (int ii = 0; ii < desc->nb_rx; ii++) {
       struct complexd rx_tmp = {0};
@@ -179,10 +184,10 @@ void __attribute__((no_sanitize_address)) multipath_channel(channel_desc_t *desc
 #endif
         } // l
       } // j
-#if 0
       if (desc->max_Doppler != 0.0)
         rx_tmp = cdMul(rx_tmp, cexp_doppler[i]);
-#endif
+      if (desc->cfo_hz != 0.0)
+        rx_tmp = cdMul(rx_tmp, cexp_cfo[i]);
 
 #ifdef DOPPLER_DEBUG
       printf("[k %2i] cexp_doppler = (%7.4f, %7.4f), abs(cexp_doppler) = %.4f\n",
@@ -229,6 +234,11 @@ void __attribute__((no_sanitize_address)) multipath_channel_float(channel_desc_t
     get_cexp_doppler(cexp_doppler, desc, length);
   }
 
+  struct complexd cexp_cfo[length];
+  if (desc->cfo_hz != 0.0) {
+    get_cexp_cfo(cexp_cfo, desc->cfo_hz, desc->sampling_rate * 1e6, length);
+  }
+
   if (dd >= length) {
     return; // No samples to process
   }
@@ -264,21 +274,32 @@ void __attribute__((no_sanitize_address)) multipath_channel_float(channel_desc_t
         }
       }
 
-#if 0
-            if (desc->max_Doppler != 0.0) {
-                float doppler_re[4] = {(float)cexp_doppler[i].r, (float)cexp_doppler[i+1].r, (float)cexp_doppler[i+2].r, (float)cexp_doppler[i+3].r};
-                float doppler_im[4] = {(float)cexp_doppler[i].i, (float)cexp_doppler[i+1].i, (float)cexp_doppler[i+2].i, (float)cexp_doppler[i+3].i};
-                
-                simde__m128 doppler128_r = simde_mm_loadu_ps(doppler_re);
-                simde__m128 doppler128_i = simde_mm_loadu_ps(doppler_im);
+      if (desc->max_Doppler != 0.0) {
+        float doppler_re[4] = {(float)cexp_doppler[i].r, (float)cexp_doppler[i + 1].r, (float)cexp_doppler[i + 2].r, (float)cexp_doppler[i + 3].r};
+        float doppler_im[4] = {(float)cexp_doppler[i].i, (float)cexp_doppler[i + 1].i, (float)cexp_doppler[i + 2].i, (float)cexp_doppler[i + 3].i};
 
-                simde__m128 temp_re = rx_tmp128_re;
-                simde__m128 temp_im = rx_tmp128_im;
+        simde__m128 doppler128_r = simde_mm_loadu_ps(doppler_re);
+        simde__m128 doppler128_i = simde_mm_loadu_ps(doppler_im);
 
-                rx_tmp128_re = simde_mm_sub_ps(simde_mm_mul_ps(temp_re, doppler128_r), simde_mm_mul_ps(temp_im, doppler128_i));
-                rx_tmp128_im = simde_mm_add_ps(simde_mm_mul_ps(temp_im, doppler128_r), simde_mm_mul_ps(temp_re, doppler128_i));
-            }
-#endif
+        simde__m128 temp_re = rx_tmp128_re;
+        simde__m128 temp_im = rx_tmp128_im;
+
+        rx_tmp128_re = simde_mm_sub_ps(simde_mm_mul_ps(temp_re, doppler128_r), simde_mm_mul_ps(temp_im, doppler128_i));
+        rx_tmp128_im = simde_mm_add_ps(simde_mm_mul_ps(temp_im, doppler128_r), simde_mm_mul_ps(temp_re, doppler128_i));
+      }
+      if (desc->cfo_hz != 0.0) {
+        float cfo_re[4] = {(float)cexp_cfo[i].r, (float)cexp_cfo[i + 1].r, (float)cexp_cfo[i + 2].r, (float)cexp_cfo[i + 3].r};
+        float cfo_im[4] = {(float)cexp_cfo[i].i, (float)cexp_cfo[i + 1].i, (float)cexp_cfo[i + 2].i, (float)cexp_cfo[i + 3].i};
+
+        simde__m128 cfo128_r = simde_mm_loadu_ps(cfo_re);
+        simde__m128 cfo128_i = simde_mm_loadu_ps(cfo_im);
+
+        simde__m128 temp_re = rx_tmp128_re;
+        simde__m128 temp_im = rx_tmp128_im;
+
+        rx_tmp128_re = simde_mm_sub_ps(simde_mm_mul_ps(temp_re, cfo128_r), simde_mm_mul_ps(temp_im, cfo128_i));
+        rx_tmp128_im = simde_mm_add_ps(simde_mm_mul_ps(temp_im, cfo128_r), simde_mm_mul_ps(temp_re, cfo128_i));
+      }
       simde_mm_storeu_ps(&rx_sig_re[ii][i + dd], rx_tmp128_re);
       simde_mm_storeu_ps(&rx_sig_im[ii][i + dd], rx_tmp128_im);
     }
@@ -334,6 +355,11 @@ void multipath_channel_float(channel_desc_t *desc,
     get_cexp_doppler(cexp_doppler, desc, length);
   }
 
+  struct complexd cexp_cfo[length];
+  if (desc->cfo_hz != 0.0) {
+    get_cexp_cfo(cexp_cfo, desc->cfo_hz, desc->sampling_rate * 1e6, length);
+  }
+
   if (dd >= length) {
     return;
   }
@@ -356,15 +382,18 @@ void multipath_channel_float(channel_desc_t *desc,
         } // l (channel_length)
       } // j (nb_tx)
 
-#if 0
             if (desc->max_Doppler != 0.0) {
-                // Perform complex multiplication: rx_tmp = rx_tmp * cexp_doppler[i]
-                struct complexf doppler_factor = {(float)cexp_doppler[i].r, (float)cexp_doppler[i].i};
-                struct complexf temp = rx_tmp;
-                rx_tmp.r = (temp.r * doppler_factor.r) - (temp.i * doppler_factor.i);
-                rx_tmp.i = (temp.i * doppler_factor.r) + (temp.r * doppler_factor.i);
+              struct complexf doppler_factor = {(float)cexp_doppler[i].r, (float)cexp_doppler[i].i};
+              struct complexf temp = rx_tmp;
+              rx_tmp.r = (temp.r * doppler_factor.r) - (temp.i * doppler_factor.i);
+              rx_tmp.i = (temp.i * doppler_factor.r) + (temp.r * doppler_factor.i);
             }
-#endif
+            if (desc->cfo_hz != 0.0) {
+              struct complexf cfo_factor = {(float)cexp_cfo[i].r, (float)cexp_cfo[i].i};
+              struct complexf temp = rx_tmp;
+              rx_tmp.r = (temp.r * cfo_factor.r) - (temp.i * cfo_factor.i);
+              rx_tmp.i = (temp.i * cfo_factor.r) + (temp.r * cfo_factor.i);
+            }
       rx_sig_re[ii][i + dd] = rx_tmp.r;
       rx_sig_im[ii][i + dd] = rx_tmp.i;
 
