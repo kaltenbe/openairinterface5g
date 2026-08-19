@@ -11,9 +11,9 @@ OAI_BIN_DIR="${OAI_BIN_DIR:-${SCRIPT_DIR}/cmake_targets/ran_build/build}"
 ENB_BIN="./lte-softmodem"
 UE_BIN="./lte-uesoftmodem"
 ENB_CONFIG="../../../targets/PROJECTS/GENERIC-LTE-EPC/CONF/enb.band7.tm1.50PRB.usrpb210.conf"
-CFO_CONFIG="../../../lte_rfsim_cfo.conf"
-UE_CFO_HZ="${UE_CFO_HZ:-10000}"
-SIM_CFO_HZ="${SIM_CFO_HZ:-10000}"
+CFO_CONFIG="../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_LEO_satellite.conf"
+UE_CFO_HZ="${UE_CFO_HZ:-61871}"
+SIM_CFO_HZ="${SIM_CFO_HZ:-0}"
 
 ENB_ARGS=(
     -O "${ENB_CONFIG}"
@@ -26,18 +26,13 @@ UE_ARGS=(
     -r 50
     --rfsim
     --rfsimulator.serverport 4044
+    -O "${CFO_CONFIG}"
+    --rfsimulator.options chanmod
+    --phy-test
 )
 
 if ((UE_CFO_HZ != 0)); then
     UE_ARGS+=(--ue-cfo "${UE_CFO_HZ}")
-fi
-
-if ((SIM_CFO_HZ != 0)); then
-    UE_ARGS+=(
-        -O "${CFO_CONFIG}"
-        --rfsimulator.options chanmod
-        '--channelmod.cfo_models.[0].cfo_hz' "${SIM_CFO_HZ}"
-    )
 fi
 
 LOG_DIR="${LOG_DIR:-${SCRIPT_DIR}/test-logs/lte-rfsim}"

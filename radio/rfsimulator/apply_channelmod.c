@@ -8,6 +8,11 @@
 #include "openair2/LAYER2/NR_MAC_gNB/mac_config.h"
 #include "rfsimulator.h"
 
+/* The RF simulator is also loaded by LTE softmodems, which do not provide the
+ * NR MAC hook. Keep the direct call for NR, but do not make the shared module
+ * depend on the symbol being present. */
+extern bool nr_update_sib19(const gnb_sat_position_update_t *sat_position) __attribute__((weak));
+
 void update_channel_model(channel_desc_t *channelDesc, int nbSamples, uint64_t TS)
 {
   if ((channelDesc->sat_height > 0)
@@ -152,7 +157,8 @@ void update_channel_model(channel_desc_t *channelDesc, int nbSamples, uint64_t T
         // be provided via an external interface (e.g. O-RAN E2 interface) to the MAC layer (in the O-DU).
         // We do it directly here, because we can, and an E2 Interface implementation (e.g using FlexRIC)
         // would pull too many dependencies into rf-simulator, just for updating SIB19.
-        nr_update_sib19(&sat_position);
+        if (nr_update_sib19 != NULL)
+          nr_update_sib19(&sat_position);
       }
     } else {
       const double dir_sat_ue_x = pos_ue_x - pos_sat_x;
