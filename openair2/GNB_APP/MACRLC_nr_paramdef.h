@@ -53,6 +53,10 @@
 #define MACRLC_DBT_FILE                      "dbt_file"
 #define MACRLC_PUSCH_RSSI_THRESHOLD          "pusch_RSSI_Threshold"
 #define MACRLC_PUCCH_RSSI_THRESHOLD          "pucch_RSSI_Threshold"
+#define MACRLC_TA_MIN_RSSI                   "ta_min_rssi"
+#define MACRLC_TA_MIN_SNRX10                 "ta_min_snrx10"
+#define MACRLC_TA_MAX_STEP                   "ta_max_step"
+#define MACRLC_TA_MAX_AGE_FRAMES             "ta_max_age_frames"
 #define MACRLC_STATS_MAX_UE                  "stats_max_ue"
 #define MACRLC_SPATIAL_STREAM_IDX            "spatial_stream_index"
 
@@ -75,6 +79,10 @@
 #define HLP_MACRLC_DBT_FILE "File path to CSV file to read digital beamforming table"
 #define HLP_MACRLC_PUSCH_RSSI_THRESHOLD "Limits PUSCH TPC commands based on RSSI to prevent ADC railing. Value range [-1280, 0], unit 0.1 dBm/dBFS"
 #define HLP_MACRLC_PUCCH_RSSI_THRESHOLD "Limits PUCCH TPC commands based on RSSI to prevent ADC railing. Value range [-1280, 0], unit 0.1 dBm/dBFS"
+#define HLP_MACRLC_TA_MIN_RSSI "Minimum FAPI RSSI accepted for timing advance filtering. Value range [0, 1280]"
+#define HLP_MACRLC_TA_MIN_SNRX10 "Minimum PUSCH SNR x10 accepted for timing advance filtering. Value range [-640, 635]"
+#define HLP_MACRLC_TA_MAX_STEP "Maximum change accepted between consecutive raw timing advance measurements. Value range [1, 63]"
+#define HLP_MACRLC_TA_MAX_AGE_FRAMES "Maximum age in radio frames of a timing advance measurement. Value range [1, 1023]"
 #define HLP_MACRLC_STATS_MAX_UE "Maximum number of UEs before disabling periodical output (0 to disable)"
 #define HLP_MACRLC_SPATIAL_STREAM_INDEX "Array of RU antenna ports / eAxCIDs to be used by L1. This may only be applicable for MU-MIMO. Value range [0, 15]"
 
@@ -124,6 +132,10 @@
                                                                                0, .iptr=NULL,   .defintval=0,               TYPE_INT,     0}, \
   {MACRLC_PUCCH_RSSI_THRESHOLD,        HLP_MACRLC_PUCCH_RSSI_THRESHOLD, \
                                                                                0, .iptr=NULL,   .defintval=0,               TYPE_INT,     0}, \
+  {MACRLC_TA_MIN_RSSI,                 HLP_MACRLC_TA_MIN_RSSI,          0, .iptr=NULL,   .defintval=0,               TYPE_INT,     0}, \
+  {MACRLC_TA_MIN_SNRX10,               HLP_MACRLC_TA_MIN_SNRX10,        0, .iptr=NULL,   .defintval=-50,             TYPE_INT,     0}, \
+  {MACRLC_TA_MAX_STEP,                 HLP_MACRLC_TA_MAX_STEP,          0, .iptr=NULL,   .defintval=16,              TYPE_INT,     0}, \
+  {MACRLC_TA_MAX_AGE_FRAMES,           HLP_MACRLC_TA_MAX_AGE_FRAMES,    0, .iptr=NULL,   .defintval=100,             TYPE_INT,     0}, \
   {MACRLC_STATS_MAX_UE,                HLP_MACRLC_STATS_MAX_UE,  0, .iptr=NULL,   .defintval=8,               TYPE_INT,     0}, \
   {MACRLC_SPATIAL_STREAM_IDX,          HLP_MACRLC_SPATIAL_STREAM_INDEX, \
                                                                                0, .uptr=NULL,   .defintarrayval=0,          TYPE_INTARRAY,0}, \
@@ -172,6 +184,10 @@
   { .s5 = { NULL } }, \
   { .s2 =  { config_check_intrange, {-1280, 0}} }, /* PUSCH RSSI threshold range */ \
   { .s2 =  { config_check_intrange, {-1280, 0}} }, /* PUCCH RSSI threshold range */ \
+  { .s2 =  { config_check_intrange, {0, 1280}} }, /* TA minimum RSSI */ \
+  { .s2 =  { config_check_intrange, {-640, 635}} }, /* TA minimum SNR x10 */ \
+  { .s2 =  { config_check_intrange, {1, 63}} }, /* TA maximum step */ \
+  { .s2 =  { config_check_intrange, {1, 1023}} }, /* TA maximum measurement age */ \
   { .s5 = { NULL } }, \
   { .s2 = { NULL } }, /* Spatial stream index */ \
 }

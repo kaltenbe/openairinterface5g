@@ -80,7 +80,7 @@ int nr_write_ce_dlsch_pdu(module_id_t module_idP,
   // now TA is always send when ta_timer resets regardless of its value
   // this is done to avoid issues with the timeAlignmentTimer which is
   // supposed to monitor if the UE received TA or not */
-  if (ue_sched_ctl->ta_apply) {
+  if (ue_sched_ctl->ta_apply && ue_sched_ctl->ta_valid) {
     mac_pdu_ptr->R = 0;
     mac_pdu_ptr->LCID = DL_SCH_LCID_TA_COMMAND;
     //last_size = 1;
@@ -462,9 +462,31 @@ static int collect_dl_candidates(gNB_MAC_INST *mac,
     NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
     NR_UE_DL_BWP_t *current_BWP = &UE->current_DL_BWP;
 
-    /* Check TA */
-    if (frame == sched_ctrl->ta_frame)
-      sched_ctrl->ta_apply = true;
+    /* Check that a fresh, quality-gated TA measurement is ready when the timer expires. */
+    const int ta_max_age = mac->radio_config.ta_filter.max_age_frames > 0
+                               ? mac->radio_config.ta_filter.max_age_frames
+                               : NR_TA_FILTER_DEFAULT_MAX_AGE_FRAMES;
+    const int ta_age = (frame - sched_ctrl->ta_measurement_frame + MAX_FRAME_NUMBER) % MAX_FRAME_NUMBER;
+    if (sched_ctrl->ta_valid && ta_age > ta_max_age) {
+      LOG_D(NR_MAC,
+            "%d.%2d UE %04x discarding stale TA command %d (age %d frames)\n",
+            frame,
+            slot,
+            UE->rnti,
+            sched_ctrl->ta_update,
+            ta_age);
+      sched_ctrl->ta_valid = false;
+      sched_ctrl->ta_apply = false;
+      sched_ctrl->ta_update = 31;
+    }
+    if (frame == sched_ctrl->ta_frame) {
+      if (sched_ctrl->ta_valid) {
+        sched_ctrl->ta_apply = true;
+      } else {
+        sched_ctrl->ta_frame = (frame + 100) % MAX_FRAME_NUMBER;
+        LOG_D(NR_MAC, "%d.%2d UE %04x has no fresh TA command; next TA frame %d\n", frame, slot, UE->rnti, sched_ctrl->ta_frame);
+      }
+    }
 
     int harq_pid = sched_ctrl->retrans_dl_harq.head;
     const NR_bler_options_t *bo = &mac->dl_bler;
@@ -1173,6 +1195,7 @@ static void generate_dl_mac_pdu(gNB_MAC_INST *mac,
     // ta command is sent, values are reset
     if (sched_ctrl->ta_apply) {
       sched_ctrl->ta_apply = false;
+      sched_ctrl->ta_valid = false;
       sched_ctrl->ta_update = 31;
       sched_ctrl->ta_frame = (frame + 100) % MAX_FRAME_NUMBER;
       LOG_D(NR_MAC, "%d.%2d UE %04x TA scheduled, setting next TA frame to %d\n", frame, slot, UE->rnti, sched_ctrl->ta_frame);

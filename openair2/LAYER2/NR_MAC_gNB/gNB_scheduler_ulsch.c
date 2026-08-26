@@ -32,6 +32,79 @@ static const uint16_t NR_TRANSFORM_PRECODE_RB_LUT[274] = {
 //#define SRS_IND_DEBUG
 #define MAX_NUM_DATA_IND 1024
 
+static void nr_mac_update_ta(gNB_MAC_INST *mac,
+                             NR_UE_sched_ctrl_t *sched_ctrl,
+                             rnti_t rnti,
+                             frame_t frame,
+                             uint16_t timing_advance,
+                             uint8_t ul_cqi,
+                             uint16_t rssi)
+{
+  const nr_ta_filter_config_t *cfg = &mac->radio_config.ta_filter;
+  const int max_step = cfg->max_step > 0 ? cfg->max_step : NR_TA_FILTER_DEFAULT_MAX_STEP;
+
+  if (timing_advance == 0xffff || timing_advance > 63) {
+    LOG_D(NR_MAC, "UE %04x rejected invalid raw TA %u\n", rnti, timing_advance);
+    return;
+  }
+  if (ul_cqi == 0xff) {
+    LOG_D(NR_MAC, "UE %04x rejected raw TA %u: UL CQI unavailable\n", rnti, timing_advance);
+    return;
+  }
+  if (rssi == 0 || rssi == 0xffff || rssi < cfg->min_rssi) {
+    LOG_D(NR_MAC,
+          "UE %04x rejected raw TA %u: RSSI %u below minimum %d\n",
+          rnti,
+          timing_advance,
+          rssi,
+          cfg->min_rssi);
+    return;
+  }
+
+  const int snrx10 = ul_cqi * 5 - 640;
+  if (snrx10 < cfg->min_snrx10) {
+    LOG_D(NR_MAC,
+          "UE %04x rejected raw TA %u: PUSCH SNR x10 %d below minimum %d\n",
+          rnti,
+          timing_advance,
+          snrx10,
+          cfg->min_snrx10);
+    return;
+  }
+
+  if (sched_ctrl->ta_initialized && abs((int)timing_advance - sched_ctrl->last_good_ta) > max_step) {
+    LOG_D(NR_MAC,
+          "UE %04x rejected raw TA %u: step from last good TA %d exceeds %d\n",
+          rnti,
+          timing_advance,
+          sched_ctrl->last_good_ta,
+          max_step);
+    return;
+  }
+
+  if (sched_ctrl->ta_initialized)
+    sched_ctrl->ta_update_f = (3.0f * sched_ctrl->ta_update_f + timing_advance) / 4.0f;
+  else
+    sched_ctrl->ta_update_f = timing_advance;
+
+  sched_ctrl->ta_update = (int16_t)(sched_ctrl->ta_update_f + 0.5f);
+  sched_ctrl->last_good_ta = timing_advance;
+  sched_ctrl->last_ta_rssi = rssi;
+  sched_ctrl->last_ta_snrx10 = snrx10;
+  sched_ctrl->last_ta_ul_cqi = ul_cqi;
+  sched_ctrl->ta_measurement_frame = frame;
+  sched_ctrl->ta_initialized = true;
+  sched_ctrl->ta_valid = true;
+  LOG_I(NR_MAC,
+        "UE %04x accepted raw TA %u (RSSI %u, SNR x10 %d), filtered TA %.2f, command %d\n",
+        rnti,
+        timing_advance,
+        rssi,
+        snrx10,
+        sched_ctrl->ta_update_f,
+        sched_ctrl->ta_update);
+}
+
 // With SC-FDMA the scheduler in uplink needs to schedule N_PRB=2^x3^y5^z
 // Check 6.3.1.4 of 38.211
 int check_sc_fdma_rbsize(long transform_precoding, uint16_t rb)
@@ -847,8 +920,7 @@ static void nr_rx_ra_sdu(const module_id_t mod_id,
 
   NR_UE_sched_ctrl_t *UE_scheduling_control = &UE->UE_sched_ctrl;
   DevAssert(harq_pid >= 0 && harq_pid < 8);
-  if (timing_advance != 0xffff)
-    UE_scheduling_control->ta_update = timing_advance;
+  nr_mac_update_ta(mac, UE_scheduling_control, UE->rnti, frame, timing_advance, ul_cqi, rssi);
 
   LOG_D(NR_MAC, "[RAPROC] Received %s:\n", ra->ra_type == RA_2_STEP ? "MsgA-PUSCH" : "Msg3");
   for (uint32_t k = 0; k < sdu_len; k++) {
@@ -970,8 +1042,7 @@ static void _nr_rx_sdu(const module_id_t gnb_mod_idP,
       if (ul_cqi != 0xff)
         nr_mac_pc_snr(&UE_scheduling_control->pusch_pc, pusch_snrx10, rssi);
 
-      if (timing_advance != 0xffff)
-        UE_scheduling_control->ta_update = timing_advance;
+      nr_mac_update_ta(gNB_mac, UE_scheduling_control, UE->rnti, frameP, timing_advance, ul_cqi, rssi);
 
       const NR_sched_pusch_t *sched_pusch = &UE_scheduling_control->ul_harq_processes[harq_pid].sched_pusch;
       UNUSED(sched_pusch); // avoids warnings of unused sched_pusch when compiling without T

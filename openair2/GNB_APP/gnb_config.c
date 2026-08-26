@@ -1643,6 +1643,10 @@ void RCconfig_nr_macrlc(configmodule_interface_t *cfg)
     const int np = sizeofArray(MacRLC_Params);
     config.pusch.target_snrx10 = *gpd(params, np, MACRLC_PUSCHTARGETSNRX10)->iptr;
     config.pusch.rssi_threshold = *gpd(params, np, MACRLC_PUSCH_RSSI_THRESHOLD)->iptr;
+    config.ta_filter.min_rssi = *gpd(params, np, MACRLC_TA_MIN_RSSI)->iptr;
+    config.ta_filter.min_snrx10 = *gpd(params, np, MACRLC_TA_MIN_SNRX10)->iptr;
+    config.ta_filter.max_step = *gpd(params, np, MACRLC_TA_MAX_STEP)->iptr;
+    config.ta_filter.max_age_frames = *gpd(params, np, MACRLC_TA_MAX_AGE_FRAMES)->iptr;
     config.pucch.rssi_threshold = *gpd(params, np, MACRLC_PUCCH_RSSI_THRESHOLD)->iptr;
     config.pucch.target_snrx10 = *gpd(params, np, MACRLC_PUCCHTARGETSNRX10)->iptr;
     config.ul_prbblack_SNR_threshold = *gpd(params, np, MACRLC_UL_PRBBLACK_SNR_THRESHOLD)->iptr;
@@ -1657,6 +1661,12 @@ void RCconfig_nr_macrlc(configmodule_interface_t *cfg)
           config.pucch.target_snrx10,
           config.pucch.rssi_threshold,
           config.pucch.failure_thres);
+    LOG_I(NR_MAC,
+          "TA filtering: minimum RSSI %d, minimum SNR x10 %d, maximum step %d, maximum age %d frames\n",
+          config.ta_filter.min_rssi,
+          config.ta_filter.min_snrx10,
+          config.ta_filter.max_step,
+          config.ta_filter.max_age_frames);
 
     ngran_node_t node_type = get_node_type();
     mac_top_init_gNB(node_type, scc, &config, &default_rlc_config);

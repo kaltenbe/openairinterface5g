@@ -186,6 +186,22 @@ typedef struct nr_power_config {
   int failure_thres;
 } nr_power_config_t;
 
+typedef struct nr_ta_filter_config {
+  /// Minimum RSSI on the FAPI scale (0 means that only a valid, detected signal is required)
+  int min_rssi;
+  /// Minimum PUSCH SNR times 10
+  int min_snrx10;
+  /// Maximum accepted change between two valid raw TA measurements
+  int max_step;
+  /// Maximum age of a TA measurement in radio frames
+  int max_age_frames;
+} nr_ta_filter_config_t;
+
+#define NR_TA_FILTER_DEFAULT_MIN_RSSI 0
+#define NR_TA_FILTER_DEFAULT_MIN_SNRX10 -50
+#define NR_TA_FILTER_DEFAULT_MAX_STEP 16
+#define NR_TA_FILTER_DEFAULT_MAX_AGE_FRAMES 100
+
 typedef enum nr_srs_type_e {
   NO_SRS,
   PERIODIC_SRS,
@@ -206,6 +222,7 @@ typedef struct nr_mac_config_s {
   int maxMIMO_layers;
   bool disable_harq;
   nr_power_config_t pusch;
+  nr_ta_filter_config_t ta_filter;
   /// SNR threshold needed to put or not a PRB in the black list
   int ul_prbblack_SNR_threshold;
   nr_power_config_t pucch;
@@ -693,6 +710,14 @@ typedef struct {
 
   uint16_t ta_frame;
   int16_t ta_update;
+  int16_t last_good_ta;
+  float ta_update_f;
+  frame_t ta_measurement_frame;
+  uint16_t last_ta_rssi;
+  int16_t last_ta_snrx10;
+  uint8_t last_ta_ul_cqi;
+  bool ta_initialized;
+  bool ta_valid;
   bool ta_apply;
   int pusch_consecutive_dtx_cnt;
   int pucch_consecutive_dtx_cnt;

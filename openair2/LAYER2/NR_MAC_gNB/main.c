@@ -279,6 +279,14 @@ void mac_top_init_gNB(ngran_node_t node_type,
         RC.nrmac[i]->sib1_pdsch[n].time_domain_allocation = -1;
       RC.nrmac[i]->common_channels[0].ServingCellConfigCommon = scc;
       RC.nrmac[i]->radio_config = *config;
+      if (RC.nrmac[i]->radio_config.ta_filter.max_step <= 0) {
+        RC.nrmac[i]->radio_config.ta_filter = (nr_ta_filter_config_t){
+            .min_rssi = NR_TA_FILTER_DEFAULT_MIN_RSSI,
+            .min_snrx10 = NR_TA_FILTER_DEFAULT_MIN_SNRX10,
+            .max_step = NR_TA_FILTER_DEFAULT_MAX_STEP,
+            .max_age_frames = NR_TA_FILTER_DEFAULT_MAX_AGE_FRAMES,
+        };
+      }
       RC.nrmac[i]->rlc_config = *default_rlc_config;
 
       RC.nrmac[i]->first_MIB = true;
