@@ -12,25 +12,13 @@ GNB_BIN="${OAI_BIN_DIR}/nr-softmodem"
 UE_BIN="${OAI_BIN_DIR}/nr-uesoftmodem"
 
 # gNB configuration
-#GNB_CONFIG="${GNB_CONFIG:-gnb.sa.band254.u0.25prb.rfsim.ntn-leo-RegenWithPRS.conf}"
-GNB_CONFIG="${GNB_CONFIG:-ci-scripts/conf_files/gnb.sa.band78.106prb.rfsim.prs.conf}"
+GNB_CONFIG="${GNB_CONFIG:-gnb.sa.band254.u0.25prb.rfsim.ntn-leo-RegenWithPRS.conf}"
+#GNB_CONFIG="${GNB_CONFIG:-ci-scripts/conf_files/gnb.sa.band78.106prb.rfsim.prs.conf}"
 #UE_CONFIG="${UE_CONFIG:-ci-scripts/conf_files/nrue.band78.106prb.prs.conf}"
-UE_CONFIG="${UE_CONFIG:-ci-scripts/conf_files/ue.sa.conf}"
+#UE_CONFIG="${UE_CONFIG:-ci-scripts/conf_files/ue.sa.conf}"
 #UE_CONFIG="${UE_CONFIG:-ue_Leo_Regen_possib.conf}"
-PRS_INPUT="${PRS_INPUT:-possib}"
-
-# Default UE command-line parameters
-UE_ARGS=(
-    -C 3319680000
-    #--CO -873500000
-    -r 106
-    --numerology 1
-    --ssb 516
-    --rfsim
-    -O "${UE_CONFIG}"
-    #--log_config.ASN1_debug 1
-    #--log_config.nr_rrc_log_level debug
-)
+#UE_CONFIG="${UE_CONFIG:-ue_Leo_Regen.conf}"
+UE_CONFIG="${UE_CONFIG-}"
 
 # Logs
 LOG_DIR="${LOG_DIR:-./test-logs}"
@@ -44,7 +32,7 @@ TEST_DURATION="${TEST_DURATION:-30}"
 # This exact message means that the gNB is ready
 GNB_READY_PATTERN="Command line parameters for OAI UE"
 UE_PRS_PATTERN="${UE_PRS_PATTERN:-DL PRS ToA}"
-UE_POS_SIB_PATTERN="${UE_POS_SIB_PATTERN:-PosSIB configured}"
+UE_PRS_APPLIED_PATTERN=""
 
 GNB_PID=""
 UE_PID=""
@@ -75,12 +63,25 @@ if [[ ! -f "${GNB_CONFIG}" ]]; then
     echo "  ${GNB_CONFIG}"
     exit 1
 fi
-
-if [[ ! -f "${UE_CONFIG}" ]]; then
-    echo "ERROR: UE configuration file not found:"
-    echo "  ${UE_CONFIG}"
-    exit 1
+if [[ -n "${UE_CONFIG}" ]]; then
+    if [[ ! -f "${UE_CONFIG}" ]]; then
+        echo "ERROR: UE configuration file not found:"
+        echo "  ${UE_CONFIG}"
+        exit 1
+    fi
+    if rg -q '^[[:space:]]*PRSs[[:space:]]*=' "${UE_CONFIG}"; then
+        EXPECTED_PRS_SOURCE=0
+        PRS_DELIVERY="UE configuration file"
+    else
+        EXPECTED_PRS_SOURCE=1
+        PRS_DELIVERY="PosSIB"
+    fi
+else
+    EXPECTED_PRS_SOURCE=1
+    PRS_DELIVERY="PosSIB"
 fi
+UE_PRS_APPLIED_PATTERN="${UE_PRS_APPLIED_PATTERN:-Applied [0-9]+ PRS target\(s\) from source ${EXPECTED_PRS_SOURCE}}"
+
 
 # ----------------------------------------------------------------------
 # Cleanup
@@ -195,8 +196,18 @@ if [[ "${gnb_ready}" != "1" ]]; then
     echo "  ${GNB_READY_PATTERN}"
     echo
     echo "Last 50 lines of gNB log:"
-    tail -50 "${GNB_LOG}" || true
     exit 1
+fi
+UE_ARGS+=(--rfsim)
+GNB_UE_ARGS_LINE="$(sed -n "s|^.*${GNB_READY_PATTERN}: ||p" "${GNB_LOG}" | head -n1)"
+if [[ -z "${GNB_UE_ARGS_LINE}" ]]; then
+    echo "ERROR: Could not extract UE command-line parameters from gNB log."
+    exit 1
+fi
+read -r -a UE_ARGS <<< "${GNB_UE_ARGS_LINE}"
+UE_ARGS+=(--rfsim)
+if [[ -n "${UE_CONFIG}" ]]; then
+    UE_ARGS+=(-O "${UE_CONFIG}")
 fi
 
 echo
@@ -285,12 +296,16 @@ if ! grep -Fq "${UE_PRS_PATTERN}" "${UE_LOG}"; then
     exit 1
 fi
 
-if [[ "${PRS_INPUT}" == "possib" ]] && ! grep -Fq "${UE_POS_SIB_PATTERN}" "${UE_LOG}"; then
+if ! grep -Eq "${UE_PRS_APPLIED_PATTERN}" "${UE_LOG}"; then
     echo
-    echo "ERROR: UE did not configure PRS from PosSIB."
+    echo "ERROR: UE did not apply PRS from the expected source."
     echo
-    echo "Expected message:"
-    echo "  ${UE_POS_SIB_PATTERN}"
+    echo "PRS delivery: ${PRS_DELIVERY}"
+    echo "Expected message pattern:"
+    echo "  ${UE_PRS_APPLIED_PATTERN}"
+    echo
+    echo "PRS-related UE log messages:"
+    grep -F "PRS" "${UE_LOG}" | tail -50 || true
     exit 1
 fi
 
