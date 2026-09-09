@@ -2150,6 +2150,17 @@ void nr_rrc_mac_config_other_sib(module_id_t module_id, NR_SIB19_r17_t *sib19, i
   AssertFatal(!ret, "mutex failed %d\n", ret);
 }
 
+void nr_rrc_mac_config_prs(module_id_t module_id, const nr_ue_prs_configuration_t *configuration)
+{
+  NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
+  int ret = pthread_mutex_lock(&mac->if_mutex);
+  AssertFatal(!ret, "mutex failed %d\n", ret);
+  if (mac->if_module->prs_config_request != NULL)
+    mac->if_module->prs_config_request(module_id, 0, configuration);
+  ret = pthread_mutex_unlock(&mac->if_mutex);
+  AssertFatal(!ret, "mutex failed %d\n", ret);
+}
+
 static void handle_reconfiguration_with_sync(NR_UE_MAC_INST_t *mac,
                                              int cc_idP,
                                              int hfn,
