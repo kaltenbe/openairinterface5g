@@ -12,27 +12,20 @@ GNB_BIN="${OAI_BIN_DIR}/nr-softmodem"
 UE_BIN="${OAI_BIN_DIR}/nr-uesoftmodem"
 
 # gNB configuration
-GNB_CONFIG="${GNB_CONFIG:-gnb.sa.band254.u0.25prb.rfsim.ntn-leo-RegenWithPRS.conf}"
-UE_CONFIG="${UE_CONFIG:-ue_Leo_Regen.conf}"
-PRS_INPUT="${PRS_INPUT:-config}"
-UE_POS_SIB_CONFIG="${UE_POS_SIB_CONFIG:-ue_Leo_Regen_possib.conf}"
-
-case "${PRS_INPUT}" in
-    config) ;;
-    possib) UE_CONFIG="${UE_POS_SIB_CONFIG}" ;;
-    *)
-        echo "ERROR: PRS_INPUT must be 'config' or 'possib' (got '${PRS_INPUT}')."
-        exit 1
-        ;;
-esac
+#GNB_CONFIG="${GNB_CONFIG:-gnb.sa.band254.u0.25prb.rfsim.ntn-leo-RegenWithPRS.conf}"
+GNB_CONFIG="${GNB_CONFIG:-ci-scripts/conf_files/gnb.sa.band78.106prb.rfsim.prs.conf}"
+#UE_CONFIG="${UE_CONFIG:-ci-scripts/conf_files/nrue.band78.106prb.prs.conf}"
+UE_CONFIG="${UE_CONFIG:-ci-scripts/conf_files/ue.sa.conf}"
+#UE_CONFIG="${UE_CONFIG:-ue_Leo_Regen_possib.conf}"
+PRS_INPUT="${PRS_INPUT:-possib}"
 
 # Default UE command-line parameters
 UE_ARGS=(
-    -C 2488400000
-    --CO -873500000
-    -r 25
-    --numerology 0
-    --ssb 60
+    -C 3319680000
+    #--CO -873500000
+    -r 106
+    --numerology 1
+    --ssb 516
     --rfsim
     -O "${UE_CONFIG}"
     #--log_config.ASN1_debug 1
