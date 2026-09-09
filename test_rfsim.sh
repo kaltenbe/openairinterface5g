@@ -14,6 +14,17 @@ UE_BIN="${OAI_BIN_DIR}/nr-uesoftmodem"
 # gNB configuration
 GNB_CONFIG="${GNB_CONFIG:-gnb.sa.band254.u0.25prb.rfsim.ntn-leo-RegenWithPRS.conf}"
 UE_CONFIG="${UE_CONFIG:-ue_Leo_Regen.conf}"
+PRS_INPUT="${PRS_INPUT:-config}"
+UE_POS_SIB_CONFIG="${UE_POS_SIB_CONFIG:-ue_Leo_Regen_possib.conf}"
+
+case "${PRS_INPUT}" in
+    config) ;;
+    possib) UE_CONFIG="${UE_POS_SIB_CONFIG}" ;;
+    *)
+        echo "ERROR: PRS_INPUT must be 'config' or 'possib' (got '${PRS_INPUT}')."
+        exit 1
+        ;;
+esac
 
 # Default UE command-line parameters
 UE_ARGS=(
@@ -40,6 +51,7 @@ TEST_DURATION="${TEST_DURATION:-30}"
 # This exact message means that the gNB is ready
 GNB_READY_PATTERN="Command line parameters for OAI UE"
 UE_PRS_PATTERN="${UE_PRS_PATTERN:-DL PRS ToA}"
+UE_POS_SIB_PATTERN="${UE_POS_SIB_PATTERN:-PosSIB configured}"
 
 GNB_PID=""
 UE_PID=""
@@ -277,6 +289,15 @@ if ! grep -Fq "${UE_PRS_PATTERN}" "${UE_LOG}"; then
     echo
     echo "PRS-related UE log messages:"
     grep -F "PRS" "${UE_LOG}" | tail -50 || true
+    exit 1
+fi
+
+if [[ "${PRS_INPUT}" == "possib" ]] && ! grep -Fq "${UE_POS_SIB_PATTERN}" "${UE_LOG}"; then
+    echo
+    echo "ERROR: UE did not configure PRS from PosSIB."
+    echo
+    echo "Expected message:"
+    echo "  ${UE_POS_SIB_PATTERN}"
     exit 1
 fi
 
