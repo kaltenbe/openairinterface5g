@@ -286,7 +286,7 @@ static void nr_rrc_process_ntnconfig(NR_UE_RRC_INST_t *rrc, NR_UE_RRC_SI_INFO *S
 static void nr_decode_SI(NR_UE_RRC_SI_INFO *SI_info, NR_SystemInformation_t *si, NR_UE_RRC_INST_t *rrc, int hfn, int frame)
 {
   if (si->criticalExtensions.present == NR_SystemInformation__criticalExtensions_PR_criticalExtensionsFuture_r16) {
-    LOG_D(NR_RRC, "[UE] Received PosSI or a future SystemInformation extension\n");
+    LOG_I(NR_RRC, "[UE] Received PosSI or a future SystemInformation extension\n");
     return;
   }
 
@@ -2237,7 +2237,7 @@ static void nr_rrc_ue_decode_NR_BCCH_DL_SCH_Message(NR_UE_RRC_INST_t *rrc,
         bcch_message->message.choice.c1->choice.systemInformationBlockType1 = NULL;
         break;
       case NR_BCCH_DL_SCH_MessageType__c1_PR_systemInformation:
-        RRCLOG_I("%d:%d Decoding SI\n", frame, slot);
+        RRCLOG_D("%d:%d Decoding SI\n", frame, slot);
         NR_SystemInformation_t *si = bcch_message->message.choice.c1->choice.systemInformation;
         nr_decode_SI(SI_info, si, rrc, hfn, frame);
         break;
