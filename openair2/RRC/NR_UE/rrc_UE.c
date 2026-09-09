@@ -179,7 +179,9 @@ static void nr_rrc_decode_pos_sib_prs(NR_UE_RRC_INST_t *rrc, const NR_SIBpos_r16
   ASN_STRUCT_FREE(asn_DEF_LPP_AssistanceDataSIBelement_r15, element);
 }
 
-static void nr_rrc_decode_pos_system_information(NR_UE_RRC_INST_t *rrc, const NR_SystemInformation_t *si)
+static void nr_rrc_decode_pos_system_information(NR_UE_RRC_INST_t *rrc,
+                                                  NR_UE_RRC_SI_INFO *SI_info,
+                                                  const NR_SystemInformation_t *si)
 {
   const struct NR_SystemInformation__criticalExtensions__criticalExtensionsFuture_r16 *future =
       si->criticalExtensions.choice.criticalExtensionsFuture_r16;
@@ -200,8 +202,8 @@ static void nr_rrc_decode_pos_system_information(NR_UE_RRC_INST_t *rrc, const NR
     else
       LOG_D(NR_RRC, "[UE] Ignoring unsupported PosSIB type %d\n", member->present);
   }
+  SI_info->possi_validity = true;
 }
-
 /** @brief Ask MAC to start or restart random access
  * @param rrc   UE RRC instance
  * @param cause Why RA is started (setup, T300, post-SIB, re-establishment) */
@@ -359,7 +361,7 @@ static void nr_rrc_process_ntnconfig(NR_UE_RRC_INST_t *rrc, NR_UE_RRC_SI_INFO *S
 static void nr_decode_SI(NR_UE_RRC_SI_INFO *SI_info, NR_SystemInformation_t *si, NR_UE_RRC_INST_t *rrc, int hfn, int frame)
 {
   if (si->criticalExtensions.present == NR_SystemInformation__criticalExtensions_PR_criticalExtensionsFuture_r16) {
-    nr_rrc_decode_pos_system_information(rrc, si);
+    nr_rrc_decode_pos_system_information(rrc, SI_info, si);
     return;
   }
 
@@ -509,6 +511,40 @@ static void nr_rrc_configure_default_SI(NR_UE_RRC_SI_INFO *SI_info,
   }
 }
 
+static void nr_rrc_configure_pos_si(NR_UE_RRC_SI_INFO *SI_info,
+                                    const NR_SIB1_v1610_IEs_t *sib1_v1610,
+                                    int scheduling_index)
+{
+  SI_info->possi_configured = false;
+  SI_info->possi_validity = false;
+  SI_info->possi_scheduling_index = -1;
+  if (!sib1_v1610 || !sib1_v1610->posSI_SchedulingInfo_r16)
+    return;
+
+  const NR_PosSI_SchedulingInfo_r16_t *pos_scheduling = sib1_v1610->posSI_SchedulingInfo_r16;
+  for (int i = 0; i < pos_scheduling->posSchedulingInfoList_r16.list.count; i++) {
+    const NR_PosSchedulingInfo_r16_t *pos_schedule = pos_scheduling->posSchedulingInfoList_r16.list.array[i];
+    bool carries_pos_sib6_1 = false;
+    for (int j = 0; j < pos_schedule->posSIB_MappingInfo_r16.list.count; j++) {
+      const NR_PosSIB_Type_r16_t *mapping = pos_schedule->posSIB_MappingInfo_r16.list.array[j];
+      if (mapping->posSibType_r16 == NR_PosSIB_Type_r16__posSibType_r16_posSibType6_1) {
+        carries_pos_sib6_1 = true;
+        break;
+      }
+    }
+    if (pos_schedule->offsetToSI_Used_r16
+        || pos_schedule->posSI_BroadcastStatus_r16
+               != NR_PosSchedulingInfo_r16__posSI_BroadcastStatus_r16_broadcasting
+        || !carries_pos_sib6_1)
+      continue;
+
+    AssertFatal(scheduling_index < MAX_SI_GROUPS, "Exceeding max number of SI groups configured\n");
+    SI_info->possi_configured = true;
+    SI_info->possi_scheduling_index = scheduling_index;
+    return;
+  }
+}
+
 static bool verify_NTN_access(const NR_UE_RRC_SI_INFO *SI_info, const NR_SIB1_v1700_IEs_t *sib1_v1700)
 {
   // SIB1 indicates if NTN access is present in the cell
@@ -602,6 +638,9 @@ static void nr_rrc_process_sib1(NR_UE_RRC_INST_t *rrc, NR_UE_RRC_SI_INFO *SI_inf
   SI_info->si_windowlength = (sib1->si_SchedulingInfo) ? sib1->si_SchedulingInfo->si_WindowLength : 0;
   // configure default SI
   nr_rrc_configure_default_SI(SI_info, sib1->si_SchedulingInfo, si_SchedInfo_v1700);
+  const int normal_si_count = sib1->si_SchedulingInfo ? sib1->si_SchedulingInfo->schedulingInfoList.list.count : 0;
+  const int rel17_si_count = si_SchedInfo_v1700 ? si_SchedInfo_v1700->schedulingInfoList2_r17.list.count : 0;
+  nr_rrc_configure_pos_si(SI_info, sib1->nonCriticalExtension, normal_si_count + rel17_si_count);
   rrc->is_NTN_UE = verify_NTN_access(SI_info, sib1_v1700);
   if (rrc->is_NTN_UE)
     get_sib19_schedinfo(SI_info, si_SchedInfo_v1700);
@@ -2072,6 +2111,8 @@ static int check_si_status(NR_UE_RRC_SI_INFO *SI_info)
       }
     }
   }
+  if (SI_info->possi_configured && !SI_info->possi_validity)
+    return 2 + SI_info->possi_scheduling_index;
   return 0;
 }
 
