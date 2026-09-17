@@ -374,6 +374,14 @@ static LPP_LPP_Message_t *encode_decode_lpp_message(const LPP_LPP_Message_t *mes
   LPP_LPP_Message_t *decoded = NULL;
   asn_codec_ctx_t ctx = {.max_stack_size = 100 * 1000};
   const size_t encoded_bytes = (enc.encoded + 7) / 8;
+// --- TEMPORARY: print the encoded bytes as hex for cross-tool comparison ---
+  fprintf(stderr, "%s encoded (%zu bytes): ", codec_name, encoded_bytes);
+  for (size_t i = 0; i < encoded_bytes; i++) {
+      fprintf(stderr, "%02x", buffer[i]);
+  }
+  fprintf(stderr, "\n");
+// --- END TEMPORARY ---
+
   asn_dec_rval_t dec = {0};
 
   if (codec == LPP_CODEC_APER)

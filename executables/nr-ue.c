@@ -11,6 +11,7 @@
 #include "NR_MAC_UE/mac_proto.h"
 #include "RRC/NR_UE/rrc_proto.h"
 #include "RRC/NR_UE/L2_interface_ue.h"
+#include "RRC/NR_UE/supl_socket.h"
 #include "SCHED_NR_UE/defs.h"
 #include "PHY/NR_UE_TRANSPORT/nr_transport_proto_ue.h"
 #include "executables/softmodem-common.h"
@@ -1086,6 +1087,9 @@ void init_NR_UE(int nb_inst, char *uecap_file, char *reconfig_file, char *rbconf
 {
   for (int instance_id = 0; instance_id < nb_inst; instance_id++) {
     NR_UE_RRC_INST_t* rrc = nr_rrc_init_ue(uecap_file, instance_id, get_nrUE_params()->nb_antennas_tx);
+
+    nr_supl_socket_init(instance_id);
+
     NR_UE_MAC_INST_t *mac = nr_l2_init_ue(instance_id, numerology);
 
     nr_rrc_set_mac_queue(instance_id, &mac->input_nf);

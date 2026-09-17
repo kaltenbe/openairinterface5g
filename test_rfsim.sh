@@ -12,13 +12,13 @@ GNB_BIN="${OAI_BIN_DIR}/nr-softmodem"
 UE_BIN="${OAI_BIN_DIR}/nr-uesoftmodem"
 
 # gNB configuration
-GNB_CONFIG="${GNB_CONFIG:-gnb.sa.band254.u0.25prb.rfsim.ntn-leo-RegenWithPRS.conf}"
-#GNB_CONFIG="${GNB_CONFIG:-ci-scripts/conf_files/gnb.sa.band78.106prb.rfsim.prs.conf}"
-#UE_CONFIG="${UE_CONFIG:-ci-scripts/conf_files/nrue.band78.106prb.prs.conf}"
+#GNB_CONFIG="${GNB_CONFIG:-gnb.sa.band254.u0.25prb.rfsim.ntn-leo-RegenWithPRS.conf}"
+GNB_CONFIG="${GNB_CONFIG:-ci-scripts/conf_files/gnb.sa.band78.106prb.rfsim.prs.conf}"
+UE_CONFIG="${UE_CONFIG:-ci-scripts/conf_files/nrue.band78.106prb.prs.conf}"
 #UE_CONFIG="${UE_CONFIG:-ci-scripts/conf_files/ue.sa.conf}"
 #UE_CONFIG="${UE_CONFIG:-ue_Leo_Regen_possib.conf}"
 #UE_CONFIG="${UE_CONFIG:-ue_Leo_Regen.conf}"
-UE_CONFIG="${UE_CONFIG-}"
+#UE_CONFIG="${UE_CONFIG-}"
 
 # Logs
 LOG_DIR="${LOG_DIR:-./test-logs}"

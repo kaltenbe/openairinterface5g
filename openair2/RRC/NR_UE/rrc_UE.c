@@ -3426,7 +3426,82 @@ void *rrc_nrue(void *notUsed)
     NRRrcMacCcchDataInd *ind = &NR_RRC_MAC_CCCH_DATA_IND(msg_p);
     nr_rrc_ue_decode_ccch(rrc, ind);
   } break;
+  
+  case NR_RRC_SUPL_PRS_DATA_IND: {
+    uint8_t *payload = NR_RRC_SUPL_PRS_DATA_IND(msg_p).payload;
+    uint32_t payload_size = NR_RRC_SUPL_PRS_DATA_IND(msg_p).payload_size;
 
+    LPP_NR_DL_PRS_AssistanceData_r16_t *assistance = NULL;
+
+    asn_dec_rval_t result = uper_decode_complete(
+        NULL,
+        &asn_DEF_LPP_NR_DL_PRS_AssistanceData_r16,
+        (void **)&assistance,
+        payload,
+        payload_size);
+
+    if (result.code != RC_OK || assistance == NULL) {
+      LOG_E(NR_RRC,
+            "[UE %ld] Failed to decode SUPL NR-DL-PRS-AssistanceData-r16\n",
+            instance);
+      free(payload);
+      break;
+    }
+
+    LOG_I(NR_RRC,
+          "[UE %ld] Successfully decoded SUPL NR-DL-PRS-AssistanceData-r16\n",
+          instance);
+
+    nr_ue_prs_configuration_t *configuration =
+        calloc(1, sizeof(*configuration));
+
+    if (configuration == NULL) {
+      LOG_E(NR_RRC,
+            "[UE %ld] Failed to allocate SUPL PRS configuration\n",
+            instance);
+      ASN_STRUCT_FREE(
+          asn_DEF_LPP_NR_DL_PRS_AssistanceData_r16,
+          assistance);
+      free(payload);
+      break;
+    }
+
+    if (lpp_nr_prs_assistance_to_configuration(
+            assistance,
+            NR_PRS_SOURCE_SUPL,
+            configuration)) {
+
+      static uint32_t generation;
+      configuration->generation = ++generation;
+
+      nr_mac_rrc_message_t message = {0};
+      message.payload_type = NR_MAC_RRC_CONFIG_PRS;
+      message.payload.config_prs.configuration = configuration;
+
+      nr_rrc_send_msg_to_mac(rrc, &message);
+
+      LOG_I(NR_RRC,
+            "[UE %ld] SUPL configured %u PRS target(s)\n",
+            instance,
+            configuration->num_targets);
+
+    } else {
+
+      LOG_E(NR_RRC,
+            "[UE %ld] SUPL contains unsupported NR-DL-PRS-AssistanceData-r16\n",
+            instance);
+
+      free(configuration);
+    }
+
+    ASN_STRUCT_FREE(
+        asn_DEF_LPP_NR_DL_PRS_AssistanceData_r16,
+        assistance);
+
+    free(payload);
+
+    break;
+  }
   case NR_RRC_MAC_PCCH_DATA_IND: {
     NRRrcMacPcchDataInd *ind = &NR_RRC_MAC_PCCH_DATA_IND(msg_p);
     const byte_array_t pcch = {.len = ind->sdu_size, .buf = ind->sdu};

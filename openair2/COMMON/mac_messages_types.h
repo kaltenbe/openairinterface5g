@@ -33,6 +33,7 @@
 #define RRC_MAC_CCCH_DATA_CNF(mSGpTR)           (mSGpTR)->ittiMsg.rrc_mac_ccch_data_cnf
 #define RRC_MAC_CCCH_DATA_IND(mSGpTR)           (mSGpTR)->ittiMsg.rrc_mac_ccch_data_ind
 #define NR_RRC_MAC_CCCH_DATA_IND(mSGpTR)        (mSGpTR)->ittiMsg.nr_rrc_mac_ccch_data_ind
+#define NR_RRC_SUPL_PRS_DATA_IND(mSGpTR)     (mSGpTR)->ittiMsg.nr_rrc_supl_prs_data_ind
 
 #define RRC_MAC_MCCH_DATA_REQ(mSGpTR)           (mSGpTR)->ittiMsg.rrc_mac_mcch_data_req
 #define RRC_MAC_MCCH_DATA_IND(mSGpTR)           (mSGpTR)->ittiMsg.rrc_mac_mcch_data_ind
@@ -179,6 +180,11 @@ typedef struct RrcMacCcchDataInd_s {
   uint8_t   enb_index;
   int       CC_id;
 } RrcMacCcchDataInd;
+
+typedef struct NRRrcSuplPrsDataInd_s {
+  uint32_t payload_size;
+  uint8_t *payload;
+} NRRrcSuplPrsDataInd;
 
 typedef struct NRRrcMacCcchDataInd_s {
   uint32_t  sdu_size;

@@ -47,4 +47,4 @@ MESSAGE_DEF(GNB_SAT_POSITION_UPDATE, MESSAGE_PRIORITY_MED, gnb_sat_position_upda
 
 // nrUE
 MESSAGE_DEF(NR_RRC_MAC_MEAS_DATA_IND,    MESSAGE_PRIORITY_MED_PLUS, NRRrcMacMeasDataInd,           nr_rrc_mac_meas_data_ind)
-
+MESSAGE_DEF(NR_RRC_SUPL_PRS_DATA_IND, MESSAGE_PRIORITY_MED_PLUS, NRRrcSuplPrsDataInd, nr_rrc_supl_prs_data_ind)
