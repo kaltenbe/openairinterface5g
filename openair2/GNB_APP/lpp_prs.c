@@ -775,10 +775,11 @@ static NR_BCCH_DL_SCH_Message_t *create_rrc_possib_message(const LPP_AssistanceD
   return message;
 }
 
-void print_rrc_possib_prs_assistance_data(const PHY_VARS_gNB *gNB,
-                                          gNB_MAC_INST *mac,
-                                          size_t muting_pattern1_length,
-                                          size_t muting_pattern2_length)
+void configure_rrc_possib_prs_assistance_data(const PHY_VARS_gNB *gNB,
+                                              gNB_MAC_INST *mac,
+                                              size_t muting_pattern1_length,
+                                              size_t muting_pattern2_length,
+                                              uint32_t periodicity_frames)
 {
   AssertFatal(gNB != NULL && mac != NULL, "cannot create PRS PosSIB without gNB and MAC instances\n");
   const NR_ServingCellConfigCommon_t *scc = mac->cells[0].common_channels.ServingCellConfigCommon;
@@ -819,7 +820,7 @@ void print_rrc_possib_prs_assistance_data(const PHY_VARS_gNB *gNB,
   xer_fprint(stdout, &asn_DEF_LPP_AssistanceDataSIBelement_r15, sib_element);
   LOG_I(GNB_APP, "PRS PosSIB BCCH-DL-SCH-Message:\n");
   xer_fprint(stdout, &asn_DEF_NR_BCCH_DL_SCH_Message, rrc_message);
-  if (!nr_mac_configure_pos_sib(mac, rrc_message))
+  if (!nr_mac_configure_pos_sib(mac, rrc_message, periodicity_frames))
     LOG_E(GNB_APP, "failed to deliver PRS PosSIB message to NR MAC\n");
 
 cleanup:

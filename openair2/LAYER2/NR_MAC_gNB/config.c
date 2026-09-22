@@ -995,7 +995,52 @@ void nr_mac_config_scc(gNB_MAC_INST *nrmac, nr_cell_sched_t *cell, NR_ServingCel
   seq_arr_init(&nrmac->pos_act_ue_arr, sizeof(positioning_activation_info_t));
 }
 
+static bool get_pos_sib_periodicity(uint32_t frames, long *periodicity)
+{
+  switch (frames) {
+    case 8:
+      *periodicity = NR_PosSchedulingInfo_r16__posSI_Periodicity_r16_rf8;
+      return true;
+    case 16:
+      *periodicity = NR_PosSchedulingInfo_r16__posSI_Periodicity_r16_rf16;
+      return true;
+    case 32:
+      *periodicity = NR_PosSchedulingInfo_r16__posSI_Periodicity_r16_rf32;
+      return true;
+    case 64:
+      *periodicity = NR_PosSchedulingInfo_r16__posSI_Periodicity_r16_rf64;
+      return true;
+    case 128:
+      *periodicity = NR_PosSchedulingInfo_r16__posSI_Periodicity_r16_rf128;
+      return true;
+    case 256:
+      *periodicity = NR_PosSchedulingInfo_r16__posSI_Periodicity_r16_rf256;
+      return true;
+    case 512:
+      *periodicity = NR_PosSchedulingInfo_r16__posSI_Periodicity_r16_rf512;
+      return true;
+    default:
+      return false;
+  }
+}
+
 static bool configure_pos_sib_schedule(nr_cell_sched_t *cell);
+
+static bool has_ordinary_si(int num_cu_sib, const f1ap_sib_msg_t cu_sib[num_cu_sib], seq_arr_t *du_sibs)
+{
+  for (int i = 0; i < num_cu_sib; i++) {
+    if (cu_sib[i].SI_type >= NR_SIB_2 && cu_sib[i].SI_type <= NR_SIB_14)
+      return true;
+  }
+
+  if (du_sibs) {
+    FOR_EACH_SEQ_ARR (nr_SIBs_t *, sib, du_sibs) {
+      if (sib->SIB_type >= NR_SIB_2 && sib->SIB_type <= NR_SIB_14)
+        return true;
+    }
+  }
+  return false;
+}
 
 bool nr_mac_configure_other_sib(nr_cell_sched_t *cell, int num_cu_sib, const f1ap_sib_msg_t cu_sib[num_cu_sib])
 {
@@ -1004,6 +1049,9 @@ bool nr_mac_configure_other_sib(nr_cell_sched_t *cell, int num_cu_sib, const f1a
   int num_du_sib = 0;
   if (du_SIBs)
     num_du_sib = du_SIBs->size;
+  AssertFatal(cc->pos_sib_bcch_length == 0 || has_ordinary_si(num_cu_sib, cu_sib, du_SIBs),
+              "BroadcastPosSIB requires an ordinary SI schedule; configure at least one SIB2-SIB14 "
+              "(for example, cu_sibs = [2])\n");
   if (num_cu_sib + num_du_sib == 0)
     return false; /* no updates */
 
@@ -1149,9 +1197,15 @@ static bool configure_pos_sib_schedule(nr_cell_sched_t *cell)
     created_v1610 = true;
   }
 
+  long periodicity;
+  if (!get_pos_sib_periodicity(cc->pos_sib_periodicity, &periodicity)) {
+    LOG_E(NR_MAC, "invalid PosSIB periodicity %u radio frames\n", cc->pos_sib_periodicity);
+    return false;
+  }
+
   NR_PosSI_SchedulingInfo_r16_t *pos_schedule = calloc_or_fail(1, sizeof(*pos_schedule));
   NR_PosSchedulingInfo_r16_t *schedule_entry = calloc_or_fail(1, sizeof(*schedule_entry));
-  schedule_entry->posSI_Periodicity_r16 = NR_PosSchedulingInfo_r16__posSI_Periodicity_r16_rf16;
+  schedule_entry->posSI_Periodicity_r16 = periodicity;
   schedule_entry->posSI_BroadcastStatus_r16 =
       NR_PosSchedulingInfo_r16__posSI_BroadcastStatus_r16_broadcasting;
 
@@ -1180,14 +1234,27 @@ static bool configure_pos_sib_schedule(nr_cell_sched_t *cell)
   memcpy(cc->sib1_bcch_pdu, sib1_buffer, sizeof(cc->sib1_bcch_pdu));
   cc->sib1_bcch_length = sib1_length;
 
-  LOG_I(NR_MAC, "activated %d-byte posSibType6-1 message with rf16 periodicity\n", cc->pos_sib_bcch_length);
+  LOG_I(NR_MAC,
+        "activated %d-byte posSibType6-1 message with rf%u periodicity\n",
+        cc->pos_sib_bcch_length,
+        cc->pos_sib_periodicity);
   return true;
 }
 
-bool nr_mac_configure_pos_sib(gNB_MAC_INST *nrmac, const NR_BCCH_DL_SCH_Message_t *pos_sib)
+bool nr_mac_configure_pos_sib(gNB_MAC_INST *nrmac,
+                              const NR_BCCH_DL_SCH_Message_t *pos_sib,
+                              uint32_t periodicity_frames)
 {
   if (!nrmac || !pos_sib) {
     LOG_E(NR_MAC, "cannot configure PosSIB without MAC and BCCH-DL-SCH message\n");
+    return false;
+  }
+
+  long periodicity;
+  if (!get_pos_sib_periodicity(periodicity_frames, &periodicity)) {
+    LOG_E(NR_MAC,
+          "PosSIB periodicity must be one of 8, 16, 32, 64, 128, 256, or 512 (got %u)\n",
+          periodicity_frames);
     return false;
   }
 
@@ -1201,6 +1268,7 @@ bool nr_mac_configure_pos_sib(gNB_MAC_INST *nrmac, const NR_BCCH_DL_SCH_Message_
   NR_COMMON_channels_t *cc = &cell->common_channels;
   memcpy(cc->pos_sib_bcch_pdu, pos_sib_buffer, sizeof(cc->pos_sib_bcch_pdu));
   cc->pos_sib_bcch_length = pos_sib_length;
+  cc->pos_sib_periodicity = (uint16_t)periodicity_frames;
   cc->pos_sib_active = false;
 
   bool activated = false;
