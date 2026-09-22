@@ -730,10 +730,12 @@ void RCconfig_nr_prs(void)
                                           RC.nrmac[j],
                                           PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN1_LIST].numelt,
                                           PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN2_LIST].numelt);
-      print_rrc_possib_prs_assistance_data(RC.gNB[j],
-                                          RC.nrmac[j],
-                                          PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN1_LIST].numelt,
-                                          PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN2_LIST].numelt);
+      if (*PRS_ParamList.paramarray[j][BROADCAST_POS_SIB].iptr)
+        configure_rrc_possib_prs_assistance_data(RC.gNB[j],
+                                                 RC.nrmac[j],
+                                                 PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN1_LIST].numelt,
+                                                 PRS_ParamList.paramarray[j][PRS_MUTING_PATTERN2_LIST].numelt,
+                                                 *PRS_ParamList.paramarray[j][POS_SIB_PERIODICITY].uptr);
     } // for j
   }
   else
