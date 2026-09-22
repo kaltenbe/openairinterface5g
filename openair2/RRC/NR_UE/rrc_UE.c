@@ -26,6 +26,11 @@
 #include "uper_decoder.h"
 #include "LPP_AssistanceDataSIBelement-r15.h"
 #include "LPP_NR-DL-PRS-AssistanceData-r16.h"
+#include "LPP_LPP-Message.h"
+#include "LPP_LPP-MessageBody.h"
+#include "LPP_ProvideAssistanceData.h"
+#include "LPP_ProvideAssistanceData-r9-IEs.h"
+#include "LPP_NR-DL-TDOA-ProvideAssistanceData-r16.h"
 
 #include "rrc_defs.h"
 #include "rrc_proto.h"
@@ -3431,45 +3436,83 @@ void *rrc_nrue(void *notUsed)
     uint8_t *payload = NR_RRC_SUPL_PRS_DATA_IND(msg_p).payload;
     uint32_t payload_size = NR_RRC_SUPL_PRS_DATA_IND(msg_p).payload_size;
 
-    LPP_NR_DL_PRS_AssistanceData_r16_t *assistance = NULL;
+    LPP_LPP_Message_t *lpp_message = NULL;
 
     asn_dec_rval_t result = uper_decode_complete(
         NULL,
-        &asn_DEF_LPP_NR_DL_PRS_AssistanceData_r16,
-        (void **)&assistance,
+        &asn_DEF_LPP_LPP_Message,
+        (void **)&lpp_message,
         payload,
         payload_size);
+    
+    free(payload);
 
-    if (result.code != RC_OK || assistance == NULL) {
+    if (result.code != RC_OK || lpp_message == NULL) {
+      LOG_E(NR_RRC, "[UE %ld] Failed to decode SUPL LPP message\n", instance);
+      if (lpp_message)
+        ASN_STRUCT_FREE(asn_DEF_LPP_LPP_Message, lpp_message);
+      break;
+    }
+
+    /* Walk down to nr-DL-PRS-AssistanceData-r16, matching handleLPP()'s
+     * dispatch on the Python side. All fields below are OPTIONAL in the
+     * generated structs, so every step is NULL-checked. This SUPL
+     * transport currently only interprets provideAssistanceData /
+     * nr-DL-TDOA-ProvideAssistanceData-r16, matching the current project
+     * scope -- other message types are logged and dropped. */
+    const LPP_NR_DL_PRS_AssistanceData_r16_t *assistance = NULL;
+
+    if (lpp_message->lpp_MessageBody != NULL
+        && lpp_message->lpp_MessageBody->present == LPP_LPP_MessageBody_PR_c1
+        && lpp_message->lpp_MessageBody->choice.c1 != NULL
+        && lpp_message->lpp_MessageBody->choice.c1->present
+               == LPP_LPP_MessageBody__c1_PR_provideAssistanceData) {
+
+      const LPP_ProvideAssistanceData_t *provide_ad =
+          lpp_message->lpp_MessageBody->choice.c1->choice.provideAssistanceData;
+
+      if (provide_ad != NULL
+          && provide_ad->criticalExtensions.present
+                 == LPP_ProvideAssistanceData__criticalExtensions_PR_c1
+          && provide_ad->criticalExtensions.choice.c1 != NULL
+          && provide_ad->criticalExtensions.choice.c1->present
+                 == LPP_ProvideAssistanceData__criticalExtensions__c1_PR_provideAssistanceData_r9) {
+
+        const LPP_ProvideAssistanceData_r9_IEs_t *r9_ies =
+            provide_ad->criticalExtensions.choice.c1->choice.provideAssistanceData_r9;
+
+        if (r9_ies != NULL && r9_ies->ext2 != NULL
+            && r9_ies->ext2->nr_DL_TDOA_ProvideAssistanceData_r16 != NULL) {
+
+          assistance =
+              r9_ies->ext2->nr_DL_TDOA_ProvideAssistanceData_r16->nr_DL_PRS_AssistanceData_r16;
+        }
+      }
+    }
+
+    if (assistance == NULL) {
       LOG_E(NR_RRC,
-            "[UE %ld] Failed to decode SUPL NR-DL-PRS-AssistanceData-r16\n",
+            "[UE %ld] SUPL LPP message does not contain "
+            "NR-DL-TDOA-ProvideAssistanceData-r16 / NR-DL-PRS-AssistanceData-r16\n",
             instance);
-      free(payload);
+      ASN_STRUCT_FREE(asn_DEF_LPP_LPP_Message, lpp_message);
       break;
     }
 
     LOG_I(NR_RRC,
-          "[UE %ld] Successfully decoded SUPL NR-DL-PRS-AssistanceData-r16\n",
+          "[UE %ld] Successfully decoded SUPL LPP provideAssistanceData "
+          "(NR-DL-TDOA)\n",
           instance);
 
-    nr_ue_prs_configuration_t *configuration =
-        calloc(1, sizeof(*configuration));
+    nr_ue_prs_configuration_t *configuration = calloc(1, sizeof(*configuration));
 
     if (configuration == NULL) {
-      LOG_E(NR_RRC,
-            "[UE %ld] Failed to allocate SUPL PRS configuration\n",
-            instance);
-      ASN_STRUCT_FREE(
-          asn_DEF_LPP_NR_DL_PRS_AssistanceData_r16,
-          assistance);
-      free(payload);
+      LOG_E(NR_RRC, "[UE %ld] Failed to allocate SUPL PRS configuration\n", instance);
+      ASN_STRUCT_FREE(asn_DEF_LPP_LPP_Message, lpp_message);
       break;
     }
 
-    if (lpp_nr_prs_assistance_to_configuration(
-            assistance,
-            NR_PRS_SOURCE_SUPL,
-            configuration)) {
+    if (lpp_nr_prs_assistance_to_configuration(assistance, NR_PRS_SOURCE_SUPL, configuration)) {
 
       static uint32_t generation;
       configuration->generation = ++generation;
@@ -3494,14 +3537,15 @@ void *rrc_nrue(void *notUsed)
       free(configuration);
     }
 
-    ASN_STRUCT_FREE(
-        asn_DEF_LPP_NR_DL_PRS_AssistanceData_r16,
-        assistance);
-
-    free(payload);
+    /* Frees the whole decoded LPP_Message tree, including the
+     * nr_DL_PRS_AssistanceData_r16 sub-structure `assistance` points into --
+     * do not free `assistance` separately, it was never independently
+     * allocated. */
+    ASN_STRUCT_FREE(asn_DEF_LPP_LPP_Message, lpp_message);
 
     break;
   }
+
   case NR_RRC_MAC_PCCH_DATA_IND: {
     NRRrcMacPcchDataInd *ind = &NR_RRC_MAC_PCCH_DATA_IND(msg_p);
     const byte_array_t pcch = {.len = ind->sdu_size, .buf = ind->sdu};
