@@ -10,6 +10,7 @@ static void fill_srs_toa_vendor_ext_indication(nfapi_nr_srs_toa_vendor_ext_indic
   msg->sfn = rand16_range(0, 1023);
   msg->slot = rand16_range(0, 159);
   msg->rnti = rand16_range(1, 65535);
+  msg->handle = 0x12345678;
   msg->num_ta = rand8_range(1, NFAPI_NR_MAX_NUM_TA_NSEC);
   for (int ta_idx = 0; ta_idx < msg->num_ta; ++ta_idx) {
     msg->ta_offset_nsec[ta_idx] = rands16_range(-16800, 16800);

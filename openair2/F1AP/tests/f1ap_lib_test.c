@@ -19,6 +19,50 @@
 #include "f1ap_ue_context.h"
 #include "f1ap_positioning.h"
 #include "f1ap_paging.h"
+#include "openair2/LAYER2/NR_MAC_gNB/nr_positioning_srs.h"
+
+static void test_positioning_srs_pdu(void)
+{
+  f1ap_srs_resource_t r = {.nr_of_srs_ports = F1AP_SRS_NUMBER_OF_PORTS_N2,
+                           .nr_of_symbols = F1AP_SRS_NUMBER_OF_SYMBOLS_N2,
+                           .repetition_factor = F1AP_SRS_REPETITION_FACTOR_RF2,
+                           .start_position = 3,
+                           .c_srs = 12,
+                           .b_srs = 1,
+                           .sequence_id = 123,
+                           .resource_type = {.present = F1AP_RESOURCE_TYPE_PR_PERIODIC,
+                                             .choice.periodic = {.periodicity = F1AP_SRS_RESOURCE_TYPE_PERIODICITY_SLOT20,
+                                                                 .offset = 19}},
+                           .transmission_comb = {.present = F1AP_TRANSMISSION_COMB_PR_N4,
+                                                 .choice.n4 = {.comb_offset_n4 = 3, .cyclic_shift_n4 = 11}}};
+  nfapi_nr_srs_pdu_t pdu;
+  AssertFatal(nr_positioning_srs_to_pdu(&r, &pdu), "valid SRS resource rejected\n");
+  AssertFatal(pdu.t_srs == 20 && pdu.t_offset == 19 && pdu.resource_type == 2 && pdu.time_start_position == 10
+                  && pdu.sequence_id == 123 && pdu.config_index == 12 && pdu.bandwidth_index == 1
+                  && pdu.comb_size == 1 && pdu.comb_offset == 3 && pdu.cyclic_shift == 11,
+              "SRS PDU does not match the requested resource\n");
+  nfapi_nr_srs_pdu_t existing = pdu;
+  existing.rnti = 0x1234;
+  AssertFatal(nr_same_positioning_srs(&pdu, &existing), "matching UE SRS was not recognized\n");
+  existing.sequence_id++;
+  AssertFatal(!nr_same_positioning_srs(&pdu, &existing), "different UE SRS was treated as matching\n");
+  static const uint16_t periods[] = {1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 160, 320, 640, 1280, 2560};
+  for (int i = 0; i < sizeof(periods) / sizeof(periods[0]); i++) {
+    r.resource_type.choice.periodic.periodicity = i;
+    r.resource_type.choice.periodic.offset = periods[i] - 1;
+    AssertFatal(nr_positioning_srs_to_pdu(&r, &pdu) && pdu.t_srs == periods[i] && pdu.t_offset == periods[i] - 1,
+                "incorrect periodicity conversion at %d\n", i);
+  }
+  r.resource_type.choice.periodic.periodicity = F1AP_SRS_RESOURCE_TYPE_PERIODICITY_SLOT20;
+  r.resource_type.choice.periodic.offset = 20;
+  AssertFatal(!nr_positioning_srs_to_pdu(&r, &pdu), "invalid offset accepted\n");
+  r.resource_type.choice.periodic.offset = 19;
+  r.transmission_comb.choice.n4.cyclic_shift_n4 = 12;
+  AssertFatal(!nr_positioning_srs_to_pdu(&r, &pdu), "invalid cyclic shift accepted\n");
+  r.transmission_comb.choice.n4.cyclic_shift_n4 = 11;
+  r.nr_of_symbols = -1;
+  AssertFatal(!nr_positioning_srs_to_pdu(&r, &pdu), "invalid symbol count accepted\n");
+}
 
 void exit_function(const char *file, const char *function, const int line, const char *s, const int assert)
 {
@@ -2480,6 +2524,7 @@ static void test_f1ap_paging(void)
 
 int main()
 {
+  test_positioning_srs_pdu();
   test_initial_ul_rrc_message_transfer();
   test_dl_rrc_message_transfer();
   test_ul_rrc_message_transfer();

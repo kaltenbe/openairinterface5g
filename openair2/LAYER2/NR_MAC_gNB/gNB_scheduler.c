@@ -217,6 +217,7 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP, const int cell_id, frame_
   nr_csi_meas_reporting(gNB, cell, frame, slot);
 
   nr_schedule_periodic_srs(gNB, cell, frame, slot);
+  nr_schedule_positioning_srs(gNB, cell, frame, slot);
 
   nr_sr_reporting(gNB, cell, frame, slot);
   stop_meas(&cell->schedule_periodic);

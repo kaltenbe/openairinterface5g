@@ -1362,7 +1362,27 @@ void positioning_measurement_request(const f1ap_positioning_measurement_req_t *r
   gNB_MAC_INST *mac = RC.nrmac[0];
   NR_SCHED_LOCK(&mac->sched_lock);
   positioning_measurement_info_t *pos_meas_info = &mac->pos_meas_info;
+  nfapi_nr_srs_pdu_t pdu;
+  int cell_index;
+  if (pos_meas_info->active || !nr_prepare_positioning_srs(mac, req, &pdu, &cell_index)) {
+    const bool busy = pos_meas_info->active;
+    NR_SCHED_UNLOCK(&mac->sched_lock);
+    LOG_W(NR_MAC, "Cannot accept positioning measurement: %s\n",
+          busy ? "another request is active" : "SRS configuration is unsupported or outside the receiver grid");
+    f1ap_positioning_measurement_failure_t fail = {.transaction_id = req->transaction_id,
+                                                   .lmf_measurement_id = req->lmf_measurement_id,
+                                                   .ran_measurement_id = req->ran_measurement_id,
+                                                   .cause = F1AP_CAUSE_RADIO_NETWORK};
+    mac->mac_rrc.positioning_measurement_failure(&fail);
+    return;
+  }
   pos_meas_info->meas_req = cp_positioning_measurement_req(req);
+  if (++mac->pos_srs_next_handle == 0)
+    ++mac->pos_srs_next_handle;
+  pdu.handle = mac->pos_srs_next_handle;
+  pos_meas_info->srs_pdu = pdu;
+  pos_meas_info->cell_index = cell_index;
+  pos_meas_info->slots_until_timeout = 2 * pdu.t_srs + 2 * mac->cells[cell_index].frame_structure.numb_slots_frame;
   pos_meas_info->active = true;
   NR_SCHED_UNLOCK(&mac->sched_lock);
 }

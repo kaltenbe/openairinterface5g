@@ -2457,7 +2457,8 @@ uint8_t pack_nr_srs_toa_vendor_ext_indication(void *msg, uint8_t **ppWritePacked
   nfapi_nr_srs_toa_vendor_ext_indication_t *pNfapiMsg = (nfapi_nr_srs_toa_vendor_ext_indication_t *)msg;
 
   if (!(push16(pNfapiMsg->sfn, ppWritePackedMsg, end) && push16(pNfapiMsg->slot, ppWritePackedMsg, end)
-        && push16(pNfapiMsg->rnti, ppWritePackedMsg, end) && push8(pNfapiMsg->num_ta, ppWritePackedMsg, end))) {
+        && push16(pNfapiMsg->rnti, ppWritePackedMsg, end) && push32(pNfapiMsg->handle, ppWritePackedMsg, end)
+        && push8(pNfapiMsg->num_ta, ppWritePackedMsg, end))) {
     return 0;
   }
 
@@ -2564,7 +2565,8 @@ uint8_t unpack_nr_srs_toa_vendor_ext_indication(uint8_t **ppReadPackedMsg, uint8
 {
   nfapi_nr_srs_toa_vendor_ext_indication_t *pNfapiMsg = (nfapi_nr_srs_toa_vendor_ext_indication_t *)msg;
   if (!(pull16(ppReadPackedMsg, &pNfapiMsg->sfn, end) && pull16(ppReadPackedMsg, &pNfapiMsg->slot, end)
-        && pull16(ppReadPackedMsg, &pNfapiMsg->rnti, end) && pull8(ppReadPackedMsg, &pNfapiMsg->num_ta, end))) {
+        && pull16(ppReadPackedMsg, &pNfapiMsg->rnti, end) && pull32(ppReadPackedMsg, &pNfapiMsg->handle, end)
+        && pull8(ppReadPackedMsg, &pNfapiMsg->num_ta, end))) {
     return 0;
   }
 

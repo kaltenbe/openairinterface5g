@@ -353,7 +353,7 @@ int phy_nr_srs_indication(nfapi_nr_srs_indication_t *ind)
 
 int phy_nr_srs_toa_vendor_ext_indication(nfapi_nr_srs_toa_vendor_ext_indication_t *ind)
 {
-  handle_nr_srs_toa_vendor_ext_measurements(0, ind->sfn, ind->slot, ind->num_ta, ind->ta_offset_nsec, ind->rnti);
+  handle_nr_srs_toa_vendor_ext_measurements(0, ind->sfn, ind->slot, ind->num_ta, ind->ta_offset_nsec, ind->rnti, ind->handle);
   return 1;
 }
 //end NR phy indication

@@ -242,7 +242,8 @@ static void handle_nr_srs_toa_vendor_ext(NR_UL_IND_t *UL_info)
 
   if (num_ta > 0) {
     LOG_D(NR_PHY, "(%d.%d) UL_info->srs_toa_vendor_ext_ind.rnti: 0x%04x\n", frame, slot, rnti);
-    handle_nr_srs_toa_vendor_ext_measurements(module_id, frame, slot, num_ta, ta_offset_nsec, rnti);
+    handle_nr_srs_toa_vendor_ext_measurements(module_id, frame, slot, num_ta, ta_offset_nsec, rnti,
+                                              UL_info->srs_toa_vendor_ext_ind.handle);
   }
 }
 

@@ -1293,6 +1293,9 @@ typedef struct {
 typedef struct {
   bool active;
   f1ap_positioning_measurement_req_t meas_req;
+  nfapi_nr_srs_pdu_t srs_pdu;
+  int cell_index;
+  uint32_t slots_until_timeout;
 } positioning_measurement_info_t;
 
 /// Maximum number of cells (component carriers) per gNB MAC instance.
@@ -1456,6 +1459,7 @@ typedef struct gNB_MAC_INST_s {
 
   seq_arr_t pos_act_ue_arr;
   positioning_measurement_info_t pos_meas_info;
+  uint32_t pos_srs_next_handle;
   positioning_config_t *positioning_config;
 } gNB_MAC_INST;
 

@@ -806,6 +806,7 @@ bool eq_srs_toa_vendor_ext_indication(const nfapi_nr_srs_toa_vendor_ext_indicati
   EQ(a->sfn, b->sfn);
   EQ(a->slot, b->slot);
   EQ(a->rnti, b->rnti);
+  EQ(a->handle, b->handle);
   EQ(a->num_ta, b->num_ta);
   for (int ta_idx = 0; ta_idx < a->num_ta; ++ta_idx) {
     EQ(a->ta_offset_nsec[ta_idx], b->ta_offset_nsec[ta_idx]);
@@ -1760,6 +1761,7 @@ void copy_srs_toa_vendor_ext_indication(const nfapi_nr_srs_toa_vendor_ext_indica
   dst->sfn = src->sfn;
   dst->slot = src->slot;
   dst->rnti = src->rnti;
+  dst->handle = src->handle;
   dst->num_ta = src->num_ta;
   for (int ta_idx = 0; ta_idx < src->num_ta; ++ta_idx) {
     memcpy(dst->ta_offset_nsec, src->ta_offset_nsec, sizeof(dst->ta_offset_nsec));
@@ -1792,6 +1794,7 @@ size_t get_srs_toa_vendor_ext_indication_size(const nfapi_nr_srs_toa_vendor_ext_
   total_size += sizeof(msg->sfn);
   total_size += sizeof(msg->slot);
   total_size += sizeof(msg->rnti);
+  total_size += sizeof(msg->handle);
   total_size += sizeof(msg->num_ta);
   total_size += sizeof(msg->ta_offset_nsec);
 
@@ -2737,6 +2740,7 @@ void dump_srs_toa_vendor_ext_indication(const nfapi_nr_srs_toa_vendor_ext_indica
   INDENTED_PRINTF("SFN = %d\n", msg->sfn);
   INDENTED_PRINTF("Slot = %d\n", msg->slot);
   INDENTED_PRINTF("RNTI = 0x%02x\n", msg->rnti);
+  INDENTED_PRINTF("Handle = %u\n", msg->handle);
   INDENTED_PRINTF("Number of TA_NSEC = %d\n", msg->num_ta);
   depth++;
   for (int i = 0; i < msg->num_ta; i++) {

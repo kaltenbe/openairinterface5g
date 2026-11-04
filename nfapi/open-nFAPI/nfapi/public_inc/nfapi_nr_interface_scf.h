@@ -1996,6 +1996,7 @@ typedef struct {
   uint16_t sfn; // SFN. Value: 0 -> 1023
   uint16_t slot; // Slot. Value: 0 -> 159
   uint16_t rnti;
+  uint32_t handle;
   uint8_t num_ta;
   int16_t ta_offset_nsec[NFAPI_NR_MAX_NUM_TA_NSEC];
 } nfapi_nr_srs_toa_vendor_ext_indication_t;

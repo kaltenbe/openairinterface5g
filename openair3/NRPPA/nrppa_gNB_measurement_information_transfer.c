@@ -992,7 +992,7 @@ int nrppa_gNB_handle_measurement_request(nrppa_gnb_ue_info_t *nrppa_msg_info, co
     meas_q->measurement_quantities_length = q_len;
     meas_q->measurement_quantities_item = calloc_or_fail(q_len, sizeof(*meas_q->measurement_quantities_item));
     nrppa_measurement_quantities_item_t *q_item = meas_q->measurement_quantities_item;
-    for (int i = 0; i < meas_req_item_len; i++) {
+    for (int i = 0; i < q_len; i++) {
       switch (nrppa_meas_q->list.array[i]->tRPMeasurementQuantities_Item) {
         case NRPPA_TRPMeasurementQuantities_Item_gNB_RxTxTimeDiff:
           q_item[i].measurement_type = NRPPA_POSMEASUREMENTTYPE_GNB_RX_TX;

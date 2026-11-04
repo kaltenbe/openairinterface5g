@@ -187,6 +187,8 @@ void nr_srs_ri_computation(const nfapi_nr_srs_normalized_channel_iq_matrix_t *nr
 int get_pucch_resourceid(NR_PUCCH_Config_t *pucch_Config, int O_uci, int pucch_resource);
 
 void nr_schedule_periodic_srs(gNB_MAC_INST *mac, nr_cell_sched_t *cell, frame_t frame, int slot);
+bool nr_prepare_positioning_srs(gNB_MAC_INST *mac, const f1ap_positioning_measurement_req_t *req, nfapi_nr_srs_pdu_t *pdu, int *cell_index);
+void nr_schedule_positioning_srs(gNB_MAC_INST *mac, nr_cell_sched_t *cell, frame_t frame, int slot);
 bool nr_schedule_aperiodic_srs(gNB_MAC_INST *nrmac, nr_cell_sched_t *cell, NR_UE_info_t *UE, int sched_frame, int sched_slot, int k2, int sched_srs);
 void nr_csirs_scheduling(gNB_MAC_INST *mac, nr_cell_sched_t *cell, frame_t frame, slot_t slot, nfapi_nr_dl_tti_request_t *DL_req);
 
@@ -401,7 +403,8 @@ void handle_nr_srs_toa_vendor_ext_measurements(const module_id_t module_id,
                                                const slot_t slot,
                                                const uint8_t num_ta,
                                                const int16_t *ta_offset_nsec,
-                                               const rnti_t rnti);
+                                               const rnti_t rnti,
+                                               uint32_t handle);
 
 void find_SSB_and_RO_available(nr_cell_sched_t *cell);
 

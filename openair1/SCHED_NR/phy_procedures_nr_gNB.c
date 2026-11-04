@@ -1031,6 +1031,7 @@ static void handle_srs(fsn_t now,
       srs_toa_vendor_ext_ind->sfn = now.f;
       srs_toa_vendor_ext_ind->slot = now.s;
       srs_toa_vendor_ext_ind->rnti = srs_pdu->rnti;
+      srs_toa_vendor_ext_ind->handle = srs_pdu->handle;
       srs_toa_vendor_ext_ind->num_ta = nb_antennas_rx;
       for (int ta_idx = 0; ta_idx < nb_antennas_rx; ta_idx++) {
         srs_toa_vendor_ext_ind->ta_offset_nsec[ta_idx] = timing_advance_offset_nsec[ta_idx];

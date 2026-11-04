@@ -11,6 +11,8 @@
 #include <softmodem-common.h>
 #include "nr_mac_gNB.h"
 #include "mac_proto.h"
+#include "nr_positioning_srs.h"
+#include "openair2/F1AP/lib/f1ap_positioning.h"
 #include "common/ran_context.h"
 #include "nfapi/oai_integration/vendor_ext.h"
 #include "common/utils/nr/nr_common.h"
@@ -25,6 +27,149 @@ const uint16_t m_SRS[64] = { 4, 8, 12, 16, 16, 20, 24, 24, 28, 32, 36, 40, 48, 4
                              96, 96, 104, 112, 120, 120, 120, 128, 128, 128, 132, 136, 144, 144, 144, 144, 152, 160,
                              160, 160, 168, 176, 184, 192, 192, 192, 192, 208, 216, 224, 240, 240, 240, 240, 256, 256,
                              256, 264, 272, 272, 272 };
+
+bool nr_prepare_positioning_srs(gNB_MAC_INST *mac,
+                                const f1ap_positioning_measurement_req_t *req,
+                                nfapi_nr_srs_pdu_t *pdu,
+                                int *cell_index)
+{
+  if (!req->srs_configuration || req->pos_report_characteristics != F1AP_POSREPORTCHARACTERISTICS_ONDEMAND)
+    return false;
+  const f1ap_pos_measurement_quantities_t *quantities = &req->pos_measurement_quantities;
+  if (!quantities->pos_measurement_quantities_length || !quantities->pos_measurement_quantities_item)
+    return false;
+  for (int i = 0; i < quantities->pos_measurement_quantities_length; i++)
+    if (quantities->pos_measurement_quantities_item[i].pos_measurement_type != F1AP_POSMEASUREMENTTYPE_UL_RTOA)
+      return false;
+  const f1ap_srs_carrier_list_t *carriers = &req->srs_configuration->srs_carrier_list;
+  if (carriers->srs_carrier_list_length != 1 || !carriers->srs_carrier_list_item)
+    return false;
+  const f1ap_srs_carrier_list_item_t *carrier = &carriers->srs_carrier_list_item[0];
+  const f1ap_active_ul_bwp_t *bwp = &carrier->active_ul_bwp;
+  const f1ap_srs_config_t *cfg = &bwp->srs_config;
+  if (!cfg->srs_resource_list || cfg->srs_resource_list->srs_resource_list_length != 1
+      || !cfg->srs_resource_list->srs_resource || !cfg->srs_resource_set_list
+      || cfg->srs_resource_set_list->srs_resource_set_list_length != 1 || !cfg->srs_resource_set_list->srs_resource_set)
+    return false;
+  const f1ap_srs_resource_t *resource = cfg->srs_resource_list->srs_resource;
+  const f1ap_srs_resource_set_t *set = cfg->srs_resource_set_list->srs_resource_set;
+  if (set->resource_set_type.present != F1AP_RESOURCE_SET_TYPE_PR_PERIODIC || set->srs_resource_id_list.srs_resource_id_list_length != 1
+      || !set->srs_resource_id_list.srs_resource_id || set->srs_resource_id_list.srs_resource_id[0] != resource->srs_resource_id
+      || bwp->cyclic_prefix != F1AP_CP_TYPE_NORMAL || (unsigned)bwp->subcarrier_spacing > F1AP_SUBCARRIER_SPACING_120KHZ
+      || bwp->location_and_bandwidth > 37949 || !nr_positioning_srs_to_pdu(resource, pdu))
+    return false;
+  const int bwp_size = NRRIV2BW(bwp->location_and_bandwidth, MAX_BWP_SIZE);
+  const int bwp_start = NRRIV2PRBOFFSET(bwp->location_and_bandwidth, MAX_BWP_SIZE);
+  if (bwp_size <= 0 || bwp_start < 0 || bwp_start + bwp_size > MAX_BWP_SIZE || m_SRS[pdu->config_index] > bwp_size)
+    return false;
+
+  for (int i = 0; i < NR_MAX_CELLS; i++) {
+    nr_cell_sched_t *cell = &mac->cells[i];
+    const NR_ServingCellConfigCommon_t *scc = cell->common_channels.ServingCellConfigCommon;
+    if (!scc || !scc->uplinkConfigCommon || !scc->uplinkConfigCommon->frequencyInfoUL || !scc->downlinkConfigCommon
+        || !scc->downlinkConfigCommon->frequencyInfoDL)
+      continue;
+    const struct NR_FrequencyInfoUL *ul = scc->uplinkConfigCommon->frequencyInfoUL;
+    const long point_a = ul->absoluteFrequencyPointA ? *ul->absoluteFrequencyPointA
+                                                     : scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA;
+    if (carrier->pointA != point_a)
+      continue;
+    for (int j = 0; j < ul->scs_SpecificCarrierList.list.count; j++) {
+      const NR_SCS_SpecificCarrier_t *grid = ul->scs_SpecificCarrierList.list.array[j];
+      if (grid->subcarrierSpacing != bwp->subcarrier_spacing || cell->frame_structure.numb_slots_frame != (10 << bwp->subcarrier_spacing)
+          || bwp_start < grid->offsetToCarrier
+          || bwp_start + bwp_size > grid->offsetToCarrier + grid->carrierBandwidth)
+        continue;
+      pdu->rnti = NR_POSITIONING_SRS_RNTI;
+      pdu->bwp_start = bwp_start;
+      pdu->bwp_size = bwp_size;
+      pdu->subcarrier_spacing = bwp->subcarrier_spacing;
+      pdu->srs_parameters_v4.srs_bandwidth_size = m_SRS[pdu->config_index];
+      pdu->srs_parameters_v4.usage = 1 << NFAPI_NR_SRS_POSITIONING;
+      pdu->srs_parameters_v4.report_type[0] = 1;
+      pdu->srs_parameters_v4.iq_representation = 1;
+      pdu->srs_parameters_v4.prg_size = 1;
+      pdu->srs_parameters_v4.num_total_ue_antennas = 1 << pdu->num_ant_ports;
+      pdu->srs_parameters_v4.sampled_ue_antennas = (1 << (1 << pdu->num_ant_ports)) - 1;
+      *cell_index = i;
+      return true;
+    }
+  }
+  return false;
+}
+
+
+void nr_schedule_positioning_srs(gNB_MAC_INST *mac, nr_cell_sched_t *cell, frame_t frame, int slot)
+{
+  positioning_measurement_info_t *measurement = &mac->pos_meas_info;
+  if (!measurement->active || cell != &mac->cells[measurement->cell_index])
+    return;
+  if (--measurement->slots_until_timeout == 0) {
+    f1ap_positioning_measurement_req_t *req = &measurement->meas_req;
+    f1ap_positioning_measurement_failure_t fail = {.transaction_id = req->transaction_id,
+                                                   .lmf_measurement_id = req->lmf_measurement_id,
+                                                   .ran_measurement_id = req->ran_measurement_id,
+                                                   .cause = F1AP_CAUSE_RADIO_NETWORK};
+    measurement->active = false;
+    free_positioning_measurement_req(req);
+    memset(req, 0, sizeof(*req));
+    mac->mac_rrc.positioning_measurement_failure(&fail);
+    return;
+  }
+  const nfapi_nr_srs_pdu_t *config = &measurement->srs_pdu;
+  const int slots_frame = cell->frame_structure.numb_slots_frame;
+  const int ahead = slots_frame - 1 + get_NTN_Koffset(cell->common_channels.ServingCellConfigCommon);
+  const int sched_slot = (slot + ahead) % slots_frame;
+  const int sched_frame = (frame + (slot + ahead) / slots_frame) % MAX_FRAME_NUMBER;
+  if ((sched_frame * slots_frame + sched_slot) % config->t_srs != config->t_offset)
+    return;
+  const frame_structure_t *fs = &cell->frame_structure;
+  if (fs->period_cfg.tdd_slot_bitmap[sched_slot % fs->numb_slots_period].slot_type == TDD_NR_DOWNLINK_SLOT)
+    return;
+  const uint16_t mask = SL_to_bitmap(config->time_start_position, 1 << config->num_symbols);
+  if ((get_ul_bitmap(fs, sched_slot) & mask) != mask)
+    return;
+
+  const int index = ul_buffer_index(sched_frame, sched_slot, slots_frame, cell->UL_tti_req_ahead_size);
+  nfapi_nr_ul_tti_request_t *future = &cell->UL_tti_req_ahead[index];
+  for (int i = 0; i < future->n_pdus; i++) {
+    if (future->pdus_list[i].pdu_type != NFAPI_NR_UL_CONFIG_SRS_PDU_TYPE)
+      continue;
+    nfapi_nr_srs_pdu_t *existing = &future->pdus_list[i].srs_pdu;
+    if (nr_same_positioning_srs(existing, config)) {
+      existing->handle = config->handle;
+      existing->srs_parameters_v4.usage = 1 << NFAPI_NR_SRS_POSITIONING;
+      return;
+    }
+  }
+  if (future->n_pdus >= sizeof(future->pdus_list) / sizeof(future->pdus_list[0]))
+    return;
+  NR_beam_alloc_t beam = beam_allocation_procedure(&cell->beam_info, sched_frame, sched_slot, 0, slots_frame);
+  if (beam.idx < 0)
+    return;
+  const int map_index = ul_buffer_index(sched_frame, sched_slot, slots_frame, cell->vrb_map_UL_size);
+  uint16_t *vrb = &cell->common_channels.vrb_map_UL[beam.idx][map_index * MAX_BWP_SIZE];
+  for (int rb = config->bwp_start; rb < config->bwp_start + config->bwp_size; rb++) {
+    if ((vrb[rb] & mask) && !cell->ulprbbl[rb]) {
+      reset_beam_status(&cell->beam_info, sched_frame, sched_slot, 0, slots_frame, beam.new_beam);
+      return;
+    }
+  }
+  for (int rb = config->bwp_start; rb < config->bwp_start + config->bwp_size; rb++)
+    vrb[rb] |= mask;
+  future->pdus_list[future->n_pdus].pdu_type = NFAPI_NR_UL_CONFIG_SRS_PDU_TYPE;
+  future->pdus_list[future->n_pdus].pdu_size = sizeof(nfapi_nr_srs_pdu_t);
+  nfapi_nr_srs_pdu_t *pdu = &future->pdus_list[future->n_pdus++].srs_pdu;
+  *pdu = *config;
+  const unsigned int ports = cell->radio_config.pusch_AntennaPorts;
+  pdu->srs_parameters_v4.num_ul_spatial_streams_ports = ports;
+  pdu->beamforming.dig_bf_interface = ports;
+  const uint16_t fapi_beam = convert_to_fapi_beam(0, &cell->beam_info);
+  for (int i = 0; i < ports; i++) {
+    pdu->beamforming.prgs_list[0].dig_bf_interface_list[i].beam_idx = fapi_beam;
+    pdu->srs_parameters_v4.Ul_spatial_stream_ports[i] = cell->radio_config.spatial_stream_index[beam.idx * ports + i];
+  }
+}
 
 #ifdef SRS_DEBUG
 static void print128_number(const simde__m128i var)

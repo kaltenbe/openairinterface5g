@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LicenseRef-CSSL-1.0
 
-add_executable(f1ap_lib_test f1ap_lib_test.c)
+add_executable(f1ap_lib_test f1ap_lib_test.c ${CMAKE_SOURCE_DIR}/openair2/LAYER2/NR_MAC_gNB/nr_positioning_srs.c)
 add_dependencies(tests f1ap_lib_test)
 add_test(NAME f1ap_lib_test COMMAND f1ap_lib_test)
 target_link_libraries(f1ap_lib_test PRIVATE f1ap_lib ds)

@@ -15,6 +15,7 @@
 #include "LAYER2/nr_rlc/nr_rlc_oai_api.h"
 #include "openair3/NRPPA/nrppa_gNB_config.h"
 #include "openair2/F1AP/lib/f1ap_positioning.h"
+#include "nr_positioning_srs.h"
 
 static const uint16_t NR_TRANSFORM_PRECODE_RB_LUT[274] = {
     0,   1,   2,   3,   4,   5,   6,   6,   8,   9,   10,  10,  12,  12,  12,  15,  16,  16,  18,  18,  20,  20,  20,  20,  24,
@@ -1535,6 +1536,9 @@ void handle_nr_srs_measurements(const module_id_t module_id,
     return;
   }
 
+  if (srs_ind->srs_usage == NFAPI_NR_SRS_POSITIONING)
+    return;
+
   if (srs_ind->timing_advance_offset == 0xFFFF) {
     LOG_W(NR_MAC, "Invalid timing advance offset for RNTI %04x\n", srs_ind->rnti);
     return;
@@ -1812,11 +1816,14 @@ void handle_nr_srs_toa_vendor_ext_measurements(const module_id_t module_id,
                                                const slot_t slot,
                                                const uint8_t num_ta,
                                                const int16_t *ta_offset_nsec,
-                                               const rnti_t rnti)
+                                               const rnti_t rnti,
+                                               uint32_t handle)
 {
   gNB_MAC_INST *mac = RC.nrmac[module_id];
+  NR_SCHED_LOCK(&mac->sched_lock);
   // Return if there is no active measurement request from LMF
-  if (!mac->pos_meas_info.active) {
+  if (!mac->pos_meas_info.active || handle != mac->pos_meas_info.srs_pdu.handle) {
+    NR_SCHED_UNLOCK(&mac->sched_lock);
     return;
   }
   LOG_I(NR_MAC, "Fill Positioning Measurement Response\n");
@@ -1847,6 +1854,7 @@ void handle_nr_srs_toa_vendor_ext_measurements(const module_id_t module_id,
       break;
     default:
       LOG_E(NR_MAC, "unsupported numerology\n");
+      NR_SCHED_UNLOCK(&mac->sched_lock);
       return;
       break;
   }
@@ -1860,22 +1868,28 @@ void handle_nr_srs_toa_vendor_ext_measurements(const module_id_t module_id,
     fail.cause = F1AP_CAUSE_RADIO_NETWORK;
     mac->mac_rrc.positioning_measurement_failure(&fail);
     // since we suppport 1 measurement report per positioning request, we deactive the UE after sending failure message
-    rm_pos_act_ue_context(mac, rnti);
+    if (rnti != NR_POSITIONING_SRS_RNTI && get_pos_act_ue_context(mac, rnti))
+      rm_pos_act_ue_context(mac, rnti);
     mac->pos_meas_info.active = false;
+    free_positioning_measurement_req(req);
+    memset(req, 0, sizeof(*req));
+    NR_SCHED_UNLOCK(&mac->sched_lock);
     return;
   }
   const f1ap_trp_measurement_request_list_t *req_list = &req->trp_measurement_request_list;
   uint32_t req_list_len = req_list->trp_measurement_request_list_length;
   f1ap_trp_measurement_request_item_t *req_item = req_list->trp_measurement_request_item;
   uint32_t trp_ids_list[MAX_NUM_MEASURE_TRPS] = {0};
+  int16_t selected_toa[MAX_NUM_MEASURE_TRPS] = {0};
   uint8_t num_trps = 0;
 
   // Count the number of relavent TRPs
   for (int i = 0; i < req_list_len; i++) {
     for (int j = 0; j < positioning_config->num_trp; j++) {
-      if (req_item[i].tRPID == positioning_config->trps[j].id) {
+      if (req_item[i].tRPID == positioning_config->trps[j].id && j < num_ta) {
         if (num_trps < MAX_NUM_MEASURE_TRPS) {
           trp_ids_list[num_trps] = req_item[i].tRPID;
+          selected_toa[num_trps] = ta_offset_nsec[j];
           num_trps++;
         }
         break;
@@ -1883,7 +1897,7 @@ void handle_nr_srs_toa_vendor_ext_measurements(const module_id_t module_id,
     }
   }
 
-  if (num_ta != num_trps) {
+  if (num_ta != positioning_config->num_trp || num_trps != req_list_len) {
     LOG_E(NR_MAC, "Number of TRPs doesn't match with number of ToAs\n");
     f1ap_positioning_measurement_failure_t fail = {.transaction_id = req->transaction_id,
                                                    .lmf_measurement_id = req->lmf_measurement_id,
@@ -1891,20 +1905,28 @@ void handle_nr_srs_toa_vendor_ext_measurements(const module_id_t module_id,
     fail.cause = F1AP_CAUSE_RADIO_NETWORK;
     mac->mac_rrc.positioning_measurement_failure(&fail);
     // since we suppport 1 measurement report per positioning request, we deactive the UE after sending failure message
-    rm_pos_act_ue_context(mac, rnti);
+    if (rnti != NR_POSITIONING_SRS_RNTI && get_pos_act_ue_context(mac, rnti))
+      rm_pos_act_ue_context(mac, rnti);
     mac->pos_meas_info.active = false;
+    free_positioning_measurement_req(req);
+    memset(req, 0, sizeof(*req));
+    NR_SCHED_UNLOCK(&mac->sched_lock);
     return;
   }
 
   resp.pos_measurement_result_list = calloc_or_fail(1, sizeof(*resp.pos_measurement_result_list));
   *resp.pos_measurement_result_list =
-      generate_pos_measurement_result(&req->pos_measurement_quantities, num_trps, trp_ids_list, mu, ta_offset_nsec, frame, slot);
+      generate_pos_measurement_result(&req->pos_measurement_quantities, num_trps, trp_ids_list, mu, selected_toa, frame, slot);
   mac->mac_rrc.positioning_measurement_response(&resp);
   free_positioning_measurement_resp(&resp);
   // We suppport 1 measurement report per positioning request (no periodic measurement report support)
   // We deactive the UE after sending measurement report
-  rm_pos_act_ue_context(mac, rnti);
+  if (rnti != NR_POSITIONING_SRS_RNTI && get_pos_act_ue_context(mac, rnti))
+    rm_pos_act_ue_context(mac, rnti);
   mac->pos_meas_info.active = false;
+  free_positioning_measurement_req(req);
+  memset(req, 0, sizeof(*req));
+  NR_SCHED_UNLOCK(&mac->sched_lock);
 }
 
 void update_ul_ue_R_Qm(int mcs, int mcs_table, const NR_PUSCH_Config_t *pusch_Config, uint16_t *R, uint8_t *Qm)
